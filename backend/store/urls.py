@@ -1,5 +1,7 @@
 from django.urls import path
 from . import views
+from .views import banner_list
+
 
 urlpatterns = [
     path('products/', views.get_Products),
@@ -9,4 +11,6 @@ urlpatterns = [
     path('cart/add/', views.add_to_Cart),
     path('cart/update/', views.update_cart_quantity),
     path('cart/remove/', views.remove_from_Cart),
+    path("banners/", banner_list),
+
 ]

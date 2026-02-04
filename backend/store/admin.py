@@ -1,5 +1,6 @@
 from django.contrib import admin
 from django.utils.html import format_html
+from .models import Banner
 
 from .models import (
     category,
@@ -60,3 +61,10 @@ class OrderAdmin(admin.ModelAdmin):
 @admin.register(OrderItem)
 class OrderItemAdmin(admin.ModelAdmin):
     list_display = ("order", "product", "quantity", "price")
+
+# banner
+@admin.register(Banner)
+class BannerAdmin(admin.ModelAdmin):
+    list_display = ("title", "is_active", "order")
+    list_editable = ("is_active", "order")
+    search_fields = ("title",)

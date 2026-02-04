@@ -15,15 +15,18 @@ class category(models.Model):
 class product(models.Model):
     category = models.ForeignKey(
         category,
-        related_name='products',
+        related_name="products",
         on_delete=models.CASCADE
     )
     name = models.CharField(max_length=200)
     description = models.TextField(blank=True)
     price = models.DecimalField(max_digits=10, decimal_places=2)
 
-    # MAIN IMAGE (keep this)
-    image = models.ImageField(upload_to='products/main/', blank=True, null=True)
+    image = models.ImageField(
+        upload_to="products/main/",
+        blank=True,
+        null=True
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -31,7 +34,7 @@ class product(models.Model):
         return self.name
 
 
-# ✅ ---------------- PRODUCT IMAGES (NEW) ----------------
+# ---------------- PRODUCT IMAGES ----------------
 class ProductImage(models.Model):
     product = models.ForeignKey(
         product,
@@ -43,6 +46,45 @@ class ProductImage(models.Model):
 
     def __str__(self):
         return f"Image for {self.product.name}"
+
+
+# ---------------- BANNER (ADMIN CONTROLLED) ----------------
+class Banner(models.Model):
+    title = models.CharField(max_length=200)
+    subtitle = models.TextField(blank=True)
+
+    image = models.ImageField(upload_to="banners/")
+
+    # CTA button (admin controlled)
+    button_text = models.CharField(
+        max_length=50,
+        default="Learn More",
+        blank=True
+    )
+    button_link = models.URLField(
+        blank=True,
+        help_text="Full URL or frontend route"
+    )
+
+    # Optional product linking (SAFE string reference)
+    product = models.ForeignKey(
+        "product",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="banners"
+    )
+
+    is_active = models.BooleanField(default=True)
+    order = models.PositiveIntegerField(default=0)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["order"]
+
+    def __str__(self):
+        return self.title
 
 
 # ---------------- USER PROFILE ----------------
@@ -82,7 +124,7 @@ class Cart(models.Model):
 class CartItem(models.Model):
     cart = models.ForeignKey(
         Cart,
-        related_name='items',
+        related_name="items",
         on_delete=models.CASCADE
     )
     product = models.ForeignKey(product, on_delete=models.CASCADE)
@@ -110,7 +152,7 @@ class Order(models.Model):
 class OrderItem(models.Model):
     order = models.ForeignKey(
         Order,
-        related_name='items',
+        related_name="items",
         on_delete=models.CASCADE
     )
     product = models.ForeignKey(product, on_delete=models.CASCADE)

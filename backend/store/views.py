@@ -2,6 +2,18 @@ from rest_framework.response import Response
 from rest_framework.decorators import api_view
 from django.shortcuts import get_object_or_404
 from rest_framework import status
+from .models import Banner
+from .serializers import BannerSerializer
+
+
+
+# banner
+@api_view(["GET"])
+def banner_list(request):
+    banners = Banner.objects.filter(is_active=True)
+    serializer = BannerSerializer(banners, many=True)
+    return Response(serializer.data)
+
 
 from .models import product, category, Cart, CartItem
 from .serializers import (

@@ -5,7 +5,6 @@ const CartContext = createContext(null);
 export function CartProvider({ children }) {
   const [cartItems, setCartItems] = useState([]);
 
-  // ➕ Add item to cart (FIXED)
   const addToCart = (product, quantity = 1) => {
     setCartItems((prevItems) => {
       const existingItem = prevItems.find(
@@ -24,14 +23,13 @@ export function CartProvider({ children }) {
     });
   };
 
-  // ❌ Remove item
   const removeFromCart = (id) => {
     setCartItems((prevItems) =>
       prevItems.filter((item) => item.id !== id)
     );
   };
 
-  // 🔄 Update quantity
+ 
   const updateQuantity = (id, quantity) => {
     if (quantity < 1) return;
 
@@ -51,7 +49,6 @@ export function CartProvider({ children }) {
   );
 }
 
-// 🎯 Hook
 export const useCart = () => {
   const context = useContext(CartContext);
   if (!context) {

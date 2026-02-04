@@ -1,0 +1,202 @@
+import { useParams, Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useCart } from "../../context/CartContext";
+
+function ProductDetails() {
+  const { id } = useParams();
+  const BASEURL = import.meta.env.VITE_DJANGO_BASE_URL.replace(/\/$/, "");
+
+  const [product, setProduct] = useState(null);
+  const [images, setImages] = useState([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const [quantity, setQuantity] = useState(1);
+  const [adding, setAdding] = useState(false);
+
+  const { addToCart } = useCart();
+
+  useEffect(() => {
+    if (!id) return;
+
+    const fetchProduct = async () => {
+      try {
+        const response = await fetch(`${BASEURL}/api/products/${id}/`);
+        if (!response.ok) throw new Error("Product not found");
+
+        const data = await response.json();
+        setProduct(data);
+
+        // ✅ Build image array (main image + gallery)
+        const imgs = [];
+        if (data.image) imgs.push(`${BASEURL}${data.image}`);
+        if (data.images?.length) {
+          data.images.forEach(img =>
+            imgs.push(`${BASEURL}${img.image}`)
+          );
+        }
+
+        setImages(imgs);
+        setCurrentIndex(0);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProduct();
+  }, [id, BASEURL]);
+
+  /* ---------------- LOADING ---------------- */
+  if (loading) {
+    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+  }
+
+  if (error) {
+    return <div className="text-center mt-10">{error}</div>;
+  }
+
+  if (!product) {
+    return <div>No product found</div>;
+  }
+
+  /* ---------------- SLIDER CONTROLS ---------------- */
+  const nextImage = () => {
+    setCurrentIndex((prev) =>
+      prev === images.length - 1 ? 0 : prev + 1
+    );
+  };
+
+  const prevImage = () => {
+    setCurrentIndex((prev) =>
+      prev === 0 ? images.length - 1 : prev - 1
+    );
+  };
+
+  /* ---------------- ADD TO CART ---------------- */
+  const handleAddToCart = async () => {
+    setAdding(true);
+    await new Promise((r) => setTimeout(r, 600));
+    addToCart(product, quantity);
+    setAdding(false);
+  };
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 py-12">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+
+        {/* LEFT: IMAGE SLIDER */}
+        <div className="w-full max-w-xl mx-auto">
+  <div className="relative aspect-[4/3] bg-gray-100 rounded-xl overflow-hidden">
+
+    {/* Main Image */}
+    <img
+      src={images[currentIndex] || "https://via.placeholder.com/800x600"}
+      alt="product"
+      className="absolute inset-0 w-full h-full object-cover"
+    />
+
+    {/* Next button */}
+    {images.length > 1 && (
+      <button
+        onClick={nextImage}
+        className="absolute right-4 top-1/2 -translate-y-1/2
+                   w-11 h-11 flex items-center justify-center
+                   bg-white/80 backdrop-blur-md
+                   rounded-full shadow-lg
+                   hover:bg-white hover:scale-105
+                   active:scale-95 transition"
+        aria-label="Next image"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          className="w-5 h-5 text-gray-700"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={2}
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+        </svg>
+      </button>
+    )}
+  </div>
+
+  {/* Thumbnails */}
+  <div className="flex gap-3 mt-4 justify-center flex-wrap">
+    {images.map((img, index) => (
+      <img
+        key={index}
+        src={img}
+        alt={`thumb-${index}`}
+        onClick={() => setCurrentIndex(index)}
+        className={`w-20 h-16 object-cover rounded-md border cursor-pointer transition
+          ${
+            currentIndex === index
+              ? "border-orange-500 ring-2 ring-orange-200"
+              : "border-gray-300 hover:border-gray-400"
+          }`}
+      />
+    ))}
+  </div>
+</div>
+
+
+        {/* RIGHT: DETAILS */}
+        <div>
+          <h1 className="text-3xl font-bold mb-4">{product.name}</h1>
+
+          <p className="text-gray-600 mb-6">{product.description}</p>
+
+          <p className="text-2xl font-semibold mb-8">
+            ₹{Number(product.price).toFixed(2)}
+          </p>
+
+          {/* Quantity */}
+          <div className="mb-8">
+            <p className="font-medium mb-2">Quantity</p>
+            <div className="inline-flex items-center border rounded-full overflow-hidden">
+              <button
+                disabled={quantity === 1}
+                onClick={() => setQuantity(q => q - 1)}
+                className="w-12 h-12 hover:bg-gray-100"
+              >
+                −
+              </button>
+              <span className="w-14 text-center font-semibold">{quantity}</span>
+              <button
+                onClick={() => setQuantity(q => q + 1)}
+                className="w-12 h-12 hover:bg-gray-100"
+              >
+                +
+              </button>
+            </div>
+          </div>
+
+          {/* Add to Cart */}
+          <button
+            onClick={handleAddToCart}
+            disabled={adding}
+            className={`px-10 py-3 rounded-full font-semibold transition
+              ${
+                adding
+                  ? "bg-orange-300"
+                  : "bg-orange-400 hover:bg-orange-500 text-white"
+              }`}
+          >
+            {adding ? "Adding..." : "Add to Bag"}
+          </button>
+
+          <Link to="/" className="block mt-6 text-orange-500 hover:underline">
+            ← Back to Home
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default ProductDetails;
