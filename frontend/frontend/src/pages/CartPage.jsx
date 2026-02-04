@@ -10,6 +10,10 @@ function CartPage() {
     0
   );
 
+  // 🚚 Shipping logic
+  const shippingFee = total < 199 && total > 0 ? 99 : 0;
+  const grandTotal = total + shippingFee;
+
   return (
     <div className="min-h-screen bg-orange-50 p-6">
       <h1 className="text-3xl font-bold mb-6 text-center text-gray-800">
@@ -50,57 +54,82 @@ function CartPage() {
                 </div>
 
                 {/* 🔢 Quantity + Remove */}
-             <div className="flex items-center gap-3">
-  {/* ➖ Minus */}
-  <button
-    onClick={() =>
-      updateQuantity(item.id, Math.max(1, item.quantity - 1))
-    }
-    className="w-9 h-9 flex items-center justify-center
-               rounded-full border border-gray-300
-               text-xl font-bold text-gray-700
-               hover:bg-gray-100 active:scale-95 transition"
-  >
-    −
-  </button>
+                <div className="flex items-center gap-3">
+                  {/* ➖ Minus */}
+                  <button
+                    onClick={() =>
+                      updateQuantity(item.id, Math.max(1, item.quantity - 1))
+                    }
+                    className="w-9 h-9 flex items-center justify-center
+                               rounded-full border border-gray-300
+                               text-xl font-bold text-gray-700
+                               hover:bg-gray-100 active:scale-95 transition"
+                  >
+                    −
+                  </button>
 
-  {/* 🔢 Quantity */}
-  <span className="min-w-[32px] text-center text-lg font-semibold">
-    {item.quantity}
-  </span>
+                  {/* 🔢 Quantity */}
+                  <span className="min-w-[32px] text-center text-lg font-semibold">
+                    {item.quantity}
+                  </span>
 
-  {/* ➕ Plus */}
-  <button
-    onClick={() =>
-      updateQuantity(item.id, item.quantity + 1)
-    }
-    className="w-9 h-9 flex items-center justify-center
-               rounded-full border border-gray-300
-               text-xl font-bold text-gray-700
-               hover:bg-gray-100 active:scale-95 transition"
-  >
-    +
-  </button>
+                  {/* ➕ Plus */}
+                  <button
+                    onClick={() =>
+                      updateQuantity(item.id, item.quantity + 1)
+                    }
+                    className="w-9 h-9 flex items-center justify-center
+                               rounded-full border border-gray-300
+                               text-xl font-bold text-gray-700
+                               hover:bg-gray-100 active:scale-95 transition"
+                  >
+                    +
+                  </button>
 
-  {/* ❌ Remove */}
-  <button
-    onClick={() => removeFromCart(item.id)}
-    className="ml-4 bg-red-500 text-white px-4 py-2 rounded-lg
-               hover:bg-red-600 active:scale-95 transition"
-  >
-    Remove
-  </button>
-</div>
-
+                  {/* ❌ Remove */}
+                  <button
+                    onClick={() => removeFromCart(item.id)}
+                    className="ml-4 bg-red-500 text-white px-4 py-2 rounded-lg
+                               hover:bg-red-600 active:scale-95 transition"
+                  >
+                    Remove
+                  </button>
+                </div>
               </div>
             );
           })}
 
-          {/* 💰 Total */}
-          <div className="text-right mt-6">
-            <h3 className="text-2xl font-bold text-gray-800">
-              Total: ${total.toFixed(2)}
-            </h3>
+          {/* 💰 PRICE SUMMARY */}
+          <div className="mt-6 border-t pt-4 space-y-2">
+            <div className="flex justify-between text-gray-700">
+              <span>Subtotal</span>
+              <span>₹{total.toFixed(2)}</span>
+            </div>
+
+            <div className="flex justify-between text-gray-700">
+              <span>Shipping</span>
+              <span>
+                {shippingFee === 0 ? (
+                  <span className="text-green-600 font-medium">
+                    Free
+                  </span>
+                ) : (
+                  `₹${shippingFee.toFixed(2)}`
+                )}
+              </span>
+            </div>
+
+            <div className="flex justify-between text-xl font-bold text-gray-800 pt-2 border-t">
+              <span>Total</span>
+              <span>₹{grandTotal.toFixed(2)}</span>
+            </div>
+
+            {shippingFee > 0 && (
+              <p className="text-sm text-gray-500 mt-2">
+                Add items worth ₹{(199 - total).toFixed(2)} more to get
+                free shipping.
+              </p>
+            )}
           </div>
         </div>
       )}

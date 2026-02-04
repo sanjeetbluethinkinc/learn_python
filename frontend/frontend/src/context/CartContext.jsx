@@ -1,13 +1,12 @@
 import { createContext, useContext, useState } from "react";
 
-// ✅ Rename Card → Cart
 const CartContext = createContext(null);
 
 export function CartProvider({ children }) {
   const [cartItems, setCartItems] = useState([]);
 
-  // ➕ Add item to cart
-  const addToCart = (product) => {
+  // ➕ Add item to cart (FIXED)
+  const addToCart = (product, quantity = 1) => {
     setCartItems((prevItems) => {
       const existingItem = prevItems.find(
         (item) => item.id === product.id
@@ -16,23 +15,23 @@ export function CartProvider({ children }) {
       if (existingItem) {
         return prevItems.map((item) =>
           item.id === product.id
-            ? { ...item, quantity: item.quantity + 1 }
+            ? { ...item, quantity: item.quantity + quantity }
             : item
         );
       }
 
-      return [...prevItems, { ...product, quantity: 1 }];
+      return [...prevItems, { ...product, quantity }];
     });
   };
 
-  // ❌ Remove item from cart
+  // ❌ Remove item
   const removeFromCart = (id) => {
     setCartItems((prevItems) =>
       prevItems.filter((item) => item.id !== id)
     );
   };
 
-  // 🔄 Update quantity (safe)
+  // 🔄 Update quantity
   const updateQuantity = (id, quantity) => {
     if (quantity < 1) return;
 
@@ -52,7 +51,7 @@ export function CartProvider({ children }) {
   );
 }
 
-// 🎯 Custom hook
+// 🎯 Hook
 export const useCart = () => {
   const context = useContext(CartContext);
   if (!context) {

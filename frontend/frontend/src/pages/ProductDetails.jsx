@@ -1,4 +1,4 @@
-import { useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useCart } from "../context/CartContext";
 
@@ -7,10 +7,16 @@ function ProductDetails() {
   const BASEURL = import.meta.env.VITE_DJANGO_BASE_URL.replace(/\/$/, "");
 
   const [product, setProduct] = useState(null);
+  const [images, setImages] = useState([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const { addToCart } = useCart();
+
   const [quantity, setQuantity] = useState(1);
+  const [adding, setAdding] = useState(false);
+
+  const { addToCart } = useCart();
 
   useEffect(() => {
     if (!id) return;
@@ -18,16 +24,22 @@ function ProductDetails() {
     const fetchProduct = async () => {
       try {
         const response = await fetch(`${BASEURL}/api/products/${id}/`);
-
-        if (!response.ok) {
-          if (response.status === 404) {
-            throw new Error("Product not found");
-          }
-          throw new Error("Failed to fetch product");
-        }
+        if (!response.ok) throw new Error("Product not found");
 
         const data = await response.json();
         setProduct(data);
+
+        // ✅ Build image array (main image + gallery)
+        const imgs = [];
+        if (data.image) imgs.push(`${BASEURL}${data.image}`);
+        if (data.images?.length) {
+          data.images.forEach(img =>
+            imgs.push(`${BASEURL}${img.image}`)
+          );
+        }
+
+        setImages(imgs);
+        setCurrentIndex(0);
       } catch (err) {
         setError(err.message);
       } finally {
@@ -36,94 +48,128 @@ function ProductDetails() {
     };
 
     fetchProduct();
-  }, [id]);
+  }, [id, BASEURL]);
 
-  /* ---------------- LOADER ---------------- */
+  /* ---------------- LOADING ---------------- */
   if (loading) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-orange-50">
-        <div className="w-16 h-16 border-4 border-orange-400 border-t-transparent rounded-full animate-spin"></div>
-        <p className="mt-4 text-orange-600 font-semibold">
-          Loading product...
-        </p>
-      </div>
-    );
+    return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   }
 
-  /* ---------------- ERROR PAGE ---------------- */
   if (error) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
-        <div className="bg-white p-8 rounded-xl shadow-md max-w-md w-full text-center">
-          <div className="text-red-500 text-5xl mb-4">⚠️</div>
-          <h2 className="text-xl font-bold mb-2">Something went wrong</h2>
-          <p className="text-gray-600 mb-6">{error}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="bg-red-500 text-white px-6 py-2 rounded-lg hover:bg-red-600 transition"
-          >
-            Retry
-          </button>
-        </div>
-      </div>
-    );
+    return <div className="text-center mt-10">{error}</div>;
   }
 
   if (!product) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        No product found
-      </div>
-    );
+    return <div>No product found</div>;
   }
 
-  /* ---------------- PRODUCT DETAILS ---------------- */
-  return (
-    <div className="max-w-6xl mx-auto px-4 py-10">
-      <div className="bg-white rounded-xl shadow-md p-6 grid grid-cols-1 md:grid-cols-2 gap-8">
-        
-        {/* Image */}
-        <div className="flex justify-center">
-          <img
-            src={
-              product.image
-                ? `${BASEURL}${product.image}`
-                : "https://via.placeholder.com/500x400?text=No+Image"
-            }
-            alt={product.name}
-            className="w-full max-w-md h-80 object-cover rounded-lg"
-          />
-        </div>
+  /* ---------------- SLIDER CONTROLS ---------------- */
+  const nextImage = () => {
+    setCurrentIndex((prev) =>
+      prev === images.length - 1 ? 0 : prev + 1
+    );
+  };
 
-        {/* Details */}
+  const prevImage = () => {
+    setCurrentIndex((prev) =>
+      prev === 0 ? images.length - 1 : prev - 1
+    );
+  };
+
+  /* ---------------- ADD TO CART ---------------- */
+  const handleAddToCart = async () => {
+    setAdding(true);
+    await new Promise((r) => setTimeout(r, 600));
+    addToCart(product, quantity);
+    setAdding(false);
+  };
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 py-12">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+
+        {/* LEFT: IMAGE SLIDER */}
+        <div className="w-full max-w-xl mx-auto">
+  <div className="relative aspect-[4/3] bg-gray-100 rounded-xl overflow-hidden">
+
+    {/* Main Image */}
+    <img
+      src={images[currentIndex] || "https://via.placeholder.com/800x600"}
+      alt="product"
+      className="absolute inset-0 w-full h-full object-cover"
+    />
+
+    {/* Next button */}
+    {images.length > 1 && (
+      <button
+        onClick={nextImage}
+        className="absolute right-4 top-1/2 -translate-y-1/2
+                   w-11 h-11 flex items-center justify-center
+                   bg-white/80 backdrop-blur-md
+                   rounded-full shadow-lg
+                   hover:bg-white hover:scale-105
+                   active:scale-95 transition"
+        aria-label="Next image"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          className="w-5 h-5 text-gray-700"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={2}
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+        </svg>
+      </button>
+    )}
+  </div>
+
+  {/* Thumbnails */}
+  <div className="flex gap-3 mt-4 justify-center flex-wrap">
+    {images.map((img, index) => (
+      <img
+        key={index}
+        src={img}
+        alt={`thumb-${index}`}
+        onClick={() => setCurrentIndex(index)}
+        className={`w-20 h-16 object-cover rounded-md border cursor-pointer transition
+          ${
+            currentIndex === index
+              ? "border-orange-500 ring-2 ring-orange-200"
+              : "border-gray-300 hover:border-gray-400"
+          }`}
+      />
+    ))}
+  </div>
+</div>
+
+
+        {/* RIGHT: DETAILS */}
         <div>
           <h1 className="text-3xl font-bold mb-4">{product.name}</h1>
 
-          <p className="text-gray-600 mb-6">
-            {product.description}
-          </p>
+          <p className="text-gray-600 mb-6">{product.description}</p>
 
-          <p className="text-2xl font-semibold text-orange-600">
+          <p className="text-2xl font-semibold mb-8">
             ₹{Number(product.price).toFixed(2)}
-          </p>
-          <p className="text-sm text-gray-400 mb-6">
-            SKU: {product.id}
           </p>
 
           {/* Quantity */}
-          <div className="flex items-center gap-4 mb-6">
-            <span className="font-medium">Quantity:</span>
-            <div className="flex items-center border rounded-lg">
+          <div className="mb-8">
+            <p className="font-medium mb-2">Quantity</p>
+            <div className="inline-flex items-center border rounded-full overflow-hidden">
               <button
-                onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                className="px-4 py-2 cursor-pointer"
+                disabled={quantity === 1}
+                onClick={() => setQuantity(q => q - 1)}
+                className="w-12 h-12 hover:bg-gray-100"
               >
                 −
               </button>
-              <span className="px-4">{quantity}</span>
+              <span className="w-14 text-center font-semibold">{quantity}</span>
               <button
-                onClick={() => setQuantity((q) => q + 1)}
-                className="px-4 py-2 cursor-pointer"
+                onClick={() => setQuantity(q => q + 1)}
+                className="w-12 h-12 hover:bg-gray-100"
               >
                 +
               </button>
@@ -132,17 +178,21 @@ function ProductDetails() {
 
           {/* Add to Cart */}
           <button
-            onClick={() =>
-              addToCart({ ...product })
-            }
-            className="w-full md:w-auto bg-orange-500 text-white px-8 py-3 rounded-lg font-semibold hover:bg-orange-600 transition"
+            onClick={handleAddToCart}
+            disabled={adding}
+            className={`px-10 py-3 rounded-full font-semibold transition
+              ${
+                adding
+                  ? "bg-orange-300"
+                  : "bg-orange-400 hover:bg-orange-500 text-white"
+              }`}
           >
-            Add to Cart
+            {adding ? "Adding..." : "Add to Bag"}
           </button>
-          {/* home button  */}
-          <a href="/" className="block mt-4 text-orange-500 hover:underline">
+
+          <Link to="/" className="block mt-6 text-orange-500 hover:underline">
             ← Back to Home
-          </a>
+          </Link>
         </div>
       </div>
     </div>

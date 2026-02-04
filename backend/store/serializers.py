@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import category, product, Cart, CartItem
+from .models import category, product, Cart, CartItem, ProductImage
 
 
 # ---------------- CATEGORY SERIALIZER ----------------
@@ -9,9 +9,19 @@ class CategorySerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-# ---------------- PRODUCT SERIALIZER ----------------
+# ---------------- PRODUCT IMAGE SERIALIZER (NEW) ----------------
+class ProductImageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProductImage
+        fields = ['image']
+
+
+# ---------------- PRODUCT SERIALIZER (UPDATED) ----------------
 class ProductSerializer(serializers.ModelSerializer):
     category = CategorySerializer(read_only=True)
+
+    # 🔥 ADD THIS LINE
+    images = ProductImageSerializer(many=True, read_only=True)
 
     class Meta:
         model = product
@@ -39,6 +49,8 @@ class CartItemSerializer(serializers.ModelSerializer):
         model = CartItem
         fields = '__all__'
 
+
+# ---------------- CART SERIALIZER ----------------
 class CartSerializer(serializers.ModelSerializer):
     items = CartItemSerializer(many=True, read_only=True)
     total_items = serializers.ReadOnlyField()

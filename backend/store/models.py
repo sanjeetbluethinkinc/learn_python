@@ -21,11 +21,28 @@ class product(models.Model):
     name = models.CharField(max_length=200)
     description = models.TextField(blank=True)
     price = models.DecimalField(max_digits=10, decimal_places=2)
-    image = models.ImageField(upload_to='products/', blank=True, null=True)
+
+    # MAIN IMAGE (keep this)
+    image = models.ImageField(upload_to='products/main/', blank=True, null=True)
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return self.name
+
+
+# ✅ ---------------- PRODUCT IMAGES (NEW) ----------------
+class ProductImage(models.Model):
+    product = models.ForeignKey(
+        product,
+        related_name="images",
+        on_delete=models.CASCADE
+    )
+    image = models.ImageField(upload_to="products/gallery/")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Image for {self.product.name}"
 
 
 # ---------------- USER PROFILE ----------------
@@ -54,7 +71,6 @@ class Cart(models.Model):
 
     @property
     def total_items(self):
-        # total quantity of items
         return sum(item.quantity for item in self.items.all())
 
     @property
