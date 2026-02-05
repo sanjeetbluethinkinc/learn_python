@@ -1,50 +1,68 @@
 from rest_framework import serializers
-from .models import Banner
+from .models import HomeSection
+from .models import AboutSection
+from rest_framework import serializers
 from .models import (
     category,
     product,
-    Cart,
-    CartItem,
     ProductImage,
     Banner,
+    Cart,
+    CartItem,
+    Order,
+    OrderItem,
 )
 
 
-# banner
+# about page 
 
-class BannerSerializer(serializers.ModelSerializer):
+class AboutSectionSerializer(serializers.ModelSerializer):
+    background_image = serializers.ImageField(use_url=True)
+
+    class Meta:
+        model = AboutSection
+        fields = "__all__"
+
+# cms 
+class HomeSectionSerializer(serializers.ModelSerializer):
     image = serializers.ImageField(use_url=True)
 
     class Meta:
-        model = Banner
+        model = HomeSection
         fields = "__all__"
 
-# ---------------- CATEGORY SERIALIZER ----------------
+
+
+# ---------------- CATEGORY ----------------
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = category
         fields = "__all__"
 
 
-# ---------------- PRODUCT IMAGE SERIALIZER ----------------
+# ---------------- PRODUCT IMAGE ----------------
 class ProductImageSerializer(serializers.ModelSerializer):
+    image = serializers.ImageField(use_url=True)
+
     class Meta:
         model = ProductImage
-        fields = ["image"]
+        fields = ["id", "image"]
 
 
-# ---------------- PRODUCT SERIALIZER ----------------
+# ---------------- PRODUCT ----------------
 class ProductSerializer(serializers.ModelSerializer):
     category = CategorySerializer(read_only=True)
     images = ProductImageSerializer(many=True, read_only=True)
+    image = serializers.ImageField(use_url=True)
 
     class Meta:
         model = product
         fields = "__all__"
 
 
-# ---------------- BANNER SERIALIZER ----------------
+# ---------------- BANNER ----------------
 class BannerSerializer(serializers.ModelSerializer):
+    image = serializers.ImageField(use_url=True)
     product_id = serializers.IntegerField(
         source="product.id",
         read_only=True
@@ -57,11 +75,15 @@ class BannerSerializer(serializers.ModelSerializer):
             "title",
             "subtitle",
             "image",
+            "button_text",
+            "button_link",
             "product_id",
+            "is_active",
+            "order",
         ]
 
 
-# ---------------- CART ITEM SERIALIZER ----------------
+# ---------------- CART ITEM ----------------
 class CartItemSerializer(serializers.ModelSerializer):
     product_name = serializers.CharField(
         source="product.name",
@@ -77,13 +99,22 @@ class CartItemSerializer(serializers.ModelSerializer):
         source="product.image",
         read_only=True
     )
+    subtotal = serializers.ReadOnlyField()
 
     class Meta:
         model = CartItem
-        fields = "__all__"
+        fields = [
+            "id",
+            "product",
+            "product_name",
+            "product_price",
+            "product_image",
+            "quantity",
+            "subtotal",
+        ]
 
 
-# ---------------- CART SERIALIZER ----------------
+# ---------------- CART ----------------
 class CartSerializer(serializers.ModelSerializer):
     items = CartItemSerializer(many=True, read_only=True)
     total_items = serializers.ReadOnlyField()
@@ -91,5 +122,44 @@ class CartSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Cart
-        fields = "__all__"
+        fields = [
+            "id",
+            "user",
+            "items",
+            "total_items",
+            "total_price",
+            "created_at",
+        ]
 
+
+# ---------------- ORDER ITEM ----------------
+class OrderItemSerializer(serializers.ModelSerializer):
+    product_name = serializers.CharField(
+        source="product.name",
+        read_only=True
+    )
+
+    class Meta:
+        model = OrderItem
+        fields = [
+            "id",
+            "product",
+            "product_name",
+            "quantity",
+            "price",
+        ]
+
+
+# ---------------- ORDER ----------------
+class OrderSerializer(serializers.ModelSerializer):
+    items = OrderItemSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Order
+        fields = [
+            "id",
+            "user",
+            "total_amount",
+            "created_at",
+            "items",
+        ]

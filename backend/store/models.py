@@ -161,3 +161,59 @@ class OrderItem(models.Model):
 
     def __str__(self):
         return f"{self.quantity} x {self.product.name}"
+
+
+class HomeSection(models.Model):
+    title = models.CharField(max_length=200)
+    subtitle = models.TextField(blank=True)
+
+    description = models.TextField()
+
+    image = models.ImageField(upload_to="home_sections/")
+
+    button_text = models.CharField(
+        max_length=50,
+        blank=True,
+        default="Learn More"
+    )
+    button_link = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text="Frontend route or full URL"
+    )
+
+    is_active = models.BooleanField(default=True)
+    order = models.PositiveIntegerField(default=0)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["order"]
+
+    def __str__(self):
+        return self.title
+    
+#    about 
+class AboutSection(models.Model):
+    title = models.CharField(max_length=200)
+    description = models.TextField()
+
+    background_image = models.ImageField(upload_to="about/")
+
+    # Right side checklist (4 points like image)
+    point_1 = models.CharField(max_length=200)
+    point_2 = models.CharField(max_length=200)
+    point_3 = models.CharField(max_length=200)
+    point_4 = models.CharField(max_length=200)
+
+    # Bottom story section
+    story_label = models.CharField(
+        max_length=100,
+        default="OUR STORY"
+    )
+    story_title = models.CharField(max_length=200)
+
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.title

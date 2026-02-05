@@ -1,6 +1,6 @@
 from django.urls import path
 from . import views
-from .views import banner_list
+from .views import banner_list, home_sections, about_section
 
 
 urlpatterns = [
@@ -12,5 +12,6 @@ urlpatterns = [
     path('cart/update/', views.update_cart_quantity),
     path('cart/remove/', views.remove_from_Cart),
     path("banners/", banner_list),
-
+    path("home/sections/", home_sections),
+    path("about/section/", about_section),
 ]

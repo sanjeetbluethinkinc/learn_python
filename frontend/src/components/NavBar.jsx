@@ -7,109 +7,146 @@ const BASEURL = import.meta.env.VITE_DJANGO_BASE_URL;
 function NavBar() {
   const { cartItems } = useCart();
   const [categories, setCategories] = useState([]);
+  const [isMoreOpen, setIsMoreOpen] = useState(false);
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   const totalItems = cartItems.reduce(
     (total, item) => total + item.quantity,
     0
   );
 
-  // Fetch categories from backend (admin-controlled)
+  // Fetch categories
   useEffect(() => {
     fetch(`${BASEURL}/api/categories/`)
       .then((res) => res.json())
       .then((data) => setCategories(data))
-      .catch((err) => console.error(err));
+      .catch(console.error);
   }, []);
 
   const visibleCategories = categories.slice(0, 5);
   const moreCategories = categories.slice(5);
 
   return (
-    <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b">
+    <nav className="sticky top-0 z-50 bg-gray-900 text-white shadow-lg">
       <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
 
-        {/* Brand */}
+        {/* LOGO */}
         <Link
           to="/"
-          className="text-2xl font-extrabold text-orange-600 hover:opacity-90 transition"
+          className="text-2xl font-extrabold text-orange-500 hover:text-orange-400 transition"
         >
-          Food Market
+          Food<span className="text-white">Market</span>
         </Link>
 
-        {/* Categories */}
-        <div className="hidden md:flex items-center gap-6 mx-auto">
+        {/* DESKTOP MENU */}
+        <div className="hidden md:flex items-center gap-6">
           {visibleCategories.map((cat) => (
             <Link
               key={cat.id}
               to={`/category/${cat.slug}`}
-              className="font-medium text-gray-700 hover:text-orange-600 transition"
+              className="nav-link hover:text-orange-400 transition font-medium"
             >
               {cat.name}
             </Link>
           ))}
 
-          {/* More Dropdown */}
+          {/* MORE DROPDOWN */}
           {moreCategories.length > 0 && (
-            <div className="relative group">
-              <span className="cursor-pointer font-medium text-gray-700 hover:text-orange-600 transition">
-                More
-              </span>
-
-              <div
-                className="absolute left-0 top-full mt-3
-                           w-48 bg-white rounded-xl shadow-lg
-                           opacity-0 invisible
-                           group-hover:opacity-100 group-hover:visible
-                           transition-all"
+            <div className="relative">
+              <button
+                onClick={() => setIsMoreOpen(!isMoreOpen)}
+                className="nav-link flex items-center gap-1 hover:text-orange-400 transition font-medium"
               >
-                {moreCategories.map((cat) => (
-                  <Link
-                    key={cat.id}
-                    to={`/category/${cat.slug}`}
-                    className="block px-4 py-3 text-sm
-                               hover:bg-orange-50 hover:text-orange-600"
-                  >
-                    {cat.name}
-                  </Link>
-                ))}
-              </div>
+                More
+                <svg
+                  className={`w-4 h-4 transition-transform ${
+                    isMoreOpen ? "rotate-180" : ""
+                  }`}
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  viewBox="0 0 24 24"
+                >
+                  <path d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+             
+
+              {isMoreOpen && (
+                <div className="absolute top-full mt-3 w-48 bg-gray-800 rounded-lg shadow-xl overflow-hidden">
+                  {moreCategories.map((cat) => (
+                    <Link
+                      key={cat.id}
+                      to={`/category/${cat.slug}`}
+                      onClick={() => setIsMoreOpen(false)}
+                      className="block px-4 py-3 hover:bg-gray-700 hover:text-orange-400 transition"
+                    >
+                      {cat.name}
+                    </Link>
+                  ))}
+                  
+                </div>
+                
+              )}
+              
             </div>
+            
           )}
+           <Link
+  to="/about"
+  className="header-catageries"
+>
+  About Us
+</Link>
         </div>
 
-        {/* Cart */}
-        <Link
-          to="/cart"
-          className="relative group text-gray-700 hover:text-orange-600 transition"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-7 w-7 transition-transform group-hover:scale-110"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={1.8}
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M2.25 3h1.386c.51 0 .955.343 1.087.836L5.4 6.75m0 0h13.35c.86 0 1.452.86 1.158 1.67l-1.5 4.5a1.25 1.25 0 0 1-1.187.83H7.1a1.25 1.25 0 0 1-1.187-.83L5.4 6.75Zm1.5 12a1.125 1.125 0 1 0 0 2.25 1.125 1.125 0 0 0 0-2.25Zm9.75 0a1.125 1.125 0 1 0 0 2.25 1.125 1.125 0 0 0 0-2.25Z"
-            />
-          </svg>
+        {/* RIGHT SIDE */}
+        <div className="flex items-center gap-4">
 
-          {totalItems > 0 && (
-            <span
-              className="absolute -top-2 -right-2
-                         bg-red-600 text-white
-                         text-xs font-bold
-                         w-5 h-5 rounded-full
-                         flex items-center justify-center animate-pulse"
+          {/* CART */}
+          <Link to="/cart" className="relative">
+            <svg
+              className="w-7 h-7 hover:scale-110 transition"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              viewBox="0 0 24 24"
             >
-              {totalItems}
-            </span>
-          )}
-        </Link>
+              <path d="M2.25 3h1.386l1.65 8.25h13.35l1.5-4.5H5.4" />
+            </svg>
+
+            {totalItems > 0 && (
+              <span className="absolute -top-2 -right-2 bg-orange-500 text-xs w-5 h-5 flex items-center justify-center rounded-full">
+                {totalItems}
+              </span>
+            )}
+          </Link>
+
+          {/* MOBILE MENU BUTTON */}
+          <button
+            onClick={() => setIsMobileOpen(!isMobileOpen)}
+            className="md:hidden text-2xl"
+          >
+            ☰
+          </button>
+        </div>
       </div>
+
+      {/* MOBILE MENU */}
+      {isMobileOpen && (
+        <div className="md:hidden bg-gray-800 px-4 py-4 space-y-3">
+          {categories.map((cat) => (
+            <Link
+              key={cat.id}
+              to={`/category/${cat.slug}`}
+              onClick={() => setIsMobileOpen(false)}
+              className="block nav-link hover:text-orange-400 transition"
+            >
+              {cat.name}
+            </Link>
+          ))}
+        </div>
+      )}
     </nav>
   );
 }

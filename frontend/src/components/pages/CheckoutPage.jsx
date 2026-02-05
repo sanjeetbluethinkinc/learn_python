@@ -1,16 +1,12 @@
 import { useState } from "react";
 import { useCart } from "../../context/CartContext";
 
+const BASEURL = import.meta.env.VITE_DJANGO_BASE_URL;
+
 function CheckoutPage() {
-  const { cartItems } = useCart();
+  const { cartItems, clearCart } = useCart();
 
-  const subtotal = cartItems.reduce(
-    (sum, item) => sum + Number(item.price) * item.quantity,
-    0
-  );
-
-  const shippingFee = subtotal < 199 && subtotal > 0 ? 99 : 0;
-  const total = subtotal + shippingFee;
+  const [loading, setLoading] = useState(false);
 
   const [address, setAddress] = useState({
     fullName: "",
@@ -25,7 +21,12 @@ function CheckoutPage() {
     setAddress({ ...address, [e.target.name]: e.target.value });
   };
 
-  const handlePlaceOrder = () => {
+  const handlePlaceOrder = async () => {
+    if (cartItems.length === 0) {
+      alert("Your cart is empty");
+      return;
+    }
+
     if (
       !address.fullName ||
       !address.phone ||
@@ -38,18 +39,47 @@ function CheckoutPage() {
       return;
     }
 
-    // 🔥 Later send this data to Django API
-    const orderData = {
-      address,
-      cartItems,
-      subtotal,
-      shippingFee,
-      total,
-    };
+    try {
+      setLoading(true);
 
-    console.log("ORDER DATA:", orderData);
-    alert("Order placed successfully (demo)");
+      const response = await fetch(
+        `${BASEURL}/api/orders/create/`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include", // IMPORTANT if auth/session later
+          body: JSON.stringify({
+            address, // optional (future use)
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Order failed");
+      }
+
+      alert("Order placed successfully 🎉");
+
+      clearCart(); // clear frontend cart
+    } catch (error) {
+      alert(error.message);
+    } finally {
+      setLoading(false);
+    }
   };
+
+  // 🔢 Totals (UI only)
+  const subtotal = cartItems.reduce(
+    (sum, item) => sum + Number(item.product_price) * item.quantity,
+    0
+  );
+
+  const shippingFee = subtotal > 0 && subtotal < 199 ? 99 : 0;
+  const total = subtotal + shippingFee;
 
   return (
     <div className="min-h-screen bg-gray-50 py-10 px-4">
@@ -59,7 +89,7 @@ function CheckoutPage() {
 
       <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-        {/* 📦 ADDRESS FORM */}
+        {/* 📦 ADDRESS */}
         <div className="lg:col-span-2 bg-white rounded-2xl shadow-md p-6">
           <h2 className="text-2xl font-semibold mb-6">
             Delivery Address
@@ -122,7 +152,7 @@ function CheckoutPage() {
           </div>
         </div>
 
-        {/* 💳 ORDER SUMMARY */}
+        {/* 💳 SUMMARY */}
         <div className="bg-white rounded-2xl shadow-md p-6 h-fit">
           <h2 className="text-2xl font-semibold mb-6">
             Order Summary
@@ -155,11 +185,15 @@ function CheckoutPage() {
 
           <button
             onClick={handlePlaceOrder}
-            className="mt-6 w-full bg-orange-500 text-white
-                       py-3 rounded-xl text-lg font-semibold
-                       hover:bg-orange-600 active:scale-95 transition"
+            disabled={loading}
+            className={`mt-6 w-full py-3 rounded-xl text-lg font-semibold
+              ${loading
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-orange-500 hover:bg-orange-600 active:scale-95"
+              }
+              text-white transition`}
           >
-            Place Order
+            {loading ? "Placing Order..." : "Place Order"}
           </button>
         </div>
       </div>

@@ -4,7 +4,27 @@ from django.shortcuts import get_object_or_404
 from rest_framework import status
 from .models import Banner
 from .serializers import BannerSerializer
+from .models import HomeSection
+from .serializers import HomeSectionSerializer
+from .models import AboutSection
+from .serializers import AboutSectionSerializer
 
+
+# about page 
+@api_view(["GET"])
+def about_section(request):
+    section = AboutSection.objects.filter(is_active=True).first()
+    if not section:
+        return Response({})
+    serializer = AboutSectionSerializer(section)
+    return Response(serializer.data)
+
+# cms 
+@api_view(["GET"])
+def home_sections(request):
+    sections = HomeSection.objects.filter(is_active=True)
+    serializer = HomeSectionSerializer(sections, many=True)
+    return Response(serializer.data)
 
 
 # banner

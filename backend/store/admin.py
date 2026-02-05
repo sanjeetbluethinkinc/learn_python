@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import Banner
+from .models import HomeSection
+from .models import AboutSection
 
 from .models import (
     category,
@@ -10,6 +11,12 @@ from .models import (
     Order,
     OrderItem
 )
+
+# about page 
+@admin.register(AboutSection)
+class AboutSectionAdmin(admin.ModelAdmin):
+    list_display = ("title", "is_active")
+    list_editable = ("is_active",)
 
 # ---------------- CATEGORY ----------------
 @admin.register(category)
@@ -62,9 +69,9 @@ class OrderAdmin(admin.ModelAdmin):
 class OrderItemAdmin(admin.ModelAdmin):
     list_display = ("order", "product", "quantity", "price")
 
-# banner
-@admin.register(Banner)
-class BannerAdmin(admin.ModelAdmin):
+
+# cms
+@admin.register(HomeSection)
+class HomeSectionAdmin(admin.ModelAdmin):
     list_display = ("title", "is_active", "order")
     list_editable = ("is_active", "order")
-    search_fields = ("title",)
