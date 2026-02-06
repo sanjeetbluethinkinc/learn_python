@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 from pathlib import Path
 import os
 from dotenv import load_dotenv
+from datetime import timedelta
 
 load_dotenv()
 
@@ -36,6 +37,8 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'jazzmin', 
+    
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -44,7 +47,17 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'store',
+
 ]
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ),
+}
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(days=1),
+    "AUTH_HEADER_TYPES": ("Bearer",),
+}
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
@@ -62,6 +75,7 @@ ROOT_URLCONF = 'backend.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
+        'DIRS': [BASE_DIR / "templates"],
         'DIRS': [],
         'APP_DIRS': True,
         'OPTIONS': {
@@ -109,6 +123,37 @@ AUTH_PASSWORD_VALIDATORS = [
         'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',
     },
 ]
+JAZZMIN_SETTINGS = {
+    # Branding
+    "site_title": "Store Admin",
+    "site_header": "Store Administration",
+    "site_brand": "My Store",
+    "welcome_sign": "Welcome to Admin Dashboard",
+
+    # UI behavior
+    "show_sidebar": True,
+    "navigation_expanded": True,
+
+    # ✅ DARK THEME
+    "theme": "darkly",   # 🔥 Best dark theme
+    # other dark options: "cyborg", "slate", "superhero"
+
+    # Sidebar icons
+    "icons": {
+        "auth.User": "fas fa-user",
+        "store.Review": "fas fa-star",
+        "store.product": "fas fa-box",
+        "store.category": "fas fa-tags",
+        "store.Order": "fas fa-shopping-cart",
+        "store.Banner": "fas fa-image",
+        "store.HomeSection": "fas fa-home",
+        "store.AboutSection": "fas fa-info-circle",
+    },
+
+    # Sidebar order
+    "order_with_respect_to": ["store", "auth"],
+}
+
 
 
 # Internationalization

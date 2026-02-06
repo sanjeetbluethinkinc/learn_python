@@ -2,6 +2,79 @@ from django.db import models
 from django.contrib.auth.models import User
 
 
+# ==========================
+# CONTACT DETAILS (ADMIN)
+# ==========================
+class ContactInfo(models.Model):
+    email = models.EmailField()
+    phone = models.CharField(max_length=20)
+    address = models.TextField()
+
+    def __str__(self):
+        return "Contact Information"
+
+
+# ==========================
+# COMPANY POLICIES / DESCRIPTION
+# ==========================
+class CompanyPolicy(models.Model):
+    title = models.CharField(max_length=200)
+    description = models.TextField()
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.title
+
+
+# ==========================
+# CONTACT FORM SUBMISSIONS
+# ==========================
+class ContactSubmission(models.Model):
+    GENDER_CHOICES = [
+        ("male", "Male"),
+        ("female", "Female"),
+        ("other", "Other"),
+    ]
+
+    name = models.CharField(max_length=100)
+    email = models.EmailField()
+    phone = models.CharField(max_length=20)
+    gender = models.CharField(max_length=10, choices=GENDER_CHOICES)
+    message = models.TextField()
+    submitted_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name
+
+
+# ratings 
+class Review(models.Model):
+    RATING_CHOICES = [(i, i) for i in range(1, 6)]
+
+    name = models.CharField(max_length=100)
+    rating = models.IntegerField(choices=RATING_CHOICES)
+    review = models.TextField()
+    is_approved = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.name} - {self.rating}★"
+
+# cms
+class HomeSection(models.Model):
+    subtitle = models.CharField(max_length=100)
+    title = models.CharField(max_length=200)
+    description = models.TextField()
+    image = models.ImageField(upload_to="home/")
+    button_text = models.CharField(max_length=50, blank=True, null=True)
+    button_link = models.URLField(blank=True, null=True)
+    order = models.PositiveIntegerField(default=0)
+
+    def __str__(self):
+        return self.title
+    
+
+
 # ---------------- CATEGORY ----------------
 class category(models.Model):
     name = models.CharField(max_length=100)
@@ -163,36 +236,7 @@ class OrderItem(models.Model):
         return f"{self.quantity} x {self.product.name}"
 
 
-class HomeSection(models.Model):
-    title = models.CharField(max_length=200)
-    subtitle = models.TextField(blank=True)
 
-    description = models.TextField()
-
-    image = models.ImageField(upload_to="home_sections/")
-
-    button_text = models.CharField(
-        max_length=50,
-        blank=True,
-        default="Learn More"
-    )
-    button_link = models.CharField(
-        max_length=255,
-        blank=True,
-        help_text="Frontend route or full URL"
-    )
-
-    is_active = models.BooleanField(default=True)
-    order = models.PositiveIntegerField(default=0)
-
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        ordering = ["order"]
-
-    def __str__(self):
-        return self.title
-    
 #    about 
 class AboutSection(models.Model):
     title = models.CharField(max_length=200)

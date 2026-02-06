@@ -1,4 +1,3 @@
-import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 
 import NavBar from "./components/NavBar";
@@ -8,30 +7,67 @@ import ProductList from "./components/pages/ProductList";
 import ProductDetails from "./components/pages/ProductDetails";
 import CartPage from "./components/pages/CartPage";
 import CheckoutPage from "./components/pages/CheckoutPage";
-import AboutPage from "./components/pages/AboutPage"; // ✅ FIX
+import AboutPage from "./components/pages/AboutPage";
+import CategoryProducts from "./components/CategoryProducts";
+import HomeSection from "./components/pages/HomeSection";
+import ReviewsLayout from "./components/reviews/ReviewsLayout";
+import ContactUs from "./pages/ContactUs";
+
+// 🔐 AUTH
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+import ProtectedRoute from "./components/ProtectedRoute";
+import { AuthProvider } from "./context/AuthContext";
 
 function App() {
   return (
-    <Router>
-      <NavBar />
+    <AuthProvider>
+      <Router>
+        <NavBar />
 
-      <Routes>
-        <Route
-          path="/"
-          element={
-            <>
-              <BannerSlider />
-              <ProductList />
-            </>
-          }
-        />
+        <Routes>
+          {/* ================= HOME ================= */}
+          <Route
+            path="/"
+            element={
+              <>
+                <BannerSlider />
+                <ProductList />
+                <HomeSection />
+                <ReviewsLayout />
+              </>
+            }
+          />
 
-        <Route path="/products/:id" element={<ProductDetails />} />
-        <Route path="/cart" element={<CartPage />} />
-        <Route path="/about" element={<AboutPage />} />
-        <Route path="/checkout" element={<CheckoutPage />} />
-      </Routes>
-    </Router>
+          {/* ================= PUBLIC ROUTES ================= */}
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/contact" element={<ContactUs />} />
+          <Route path="/category/:slug" element={<CategoryProducts />} />
+          <Route path="/products/:id" element={<ProductDetails />} />
+
+          {/* ================= PROTECTED ROUTES ================= */}
+          <Route
+            path="/cart"
+            element={
+              <ProtectedRoute>
+                <CartPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/checkout"
+            element={
+              <ProtectedRoute>
+                <CheckoutPage />
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      </Router>
+    </AuthProvider>
   );
 }
 

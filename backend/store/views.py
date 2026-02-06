@@ -1,16 +1,186 @@
 from rest_framework.response import Response
-from rest_framework.decorators import api_view
-from django.shortcuts import get_object_or_404
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
-from .models import Banner
-from .serializers import BannerSerializer
-from .models import HomeSection
-from .serializers import HomeSectionSerializer
-from .models import AboutSection
-from .serializers import AboutSectionSerializer
+from django.shortcuts import get_object_or_404
+from django.contrib.auth.models import User
+from django.contrib.auth import authenticate
+
+from rest_framework_simplejwt.tokens import RefreshToken
+
+from .models import (
+    Banner,
+    HomeSection,
+    AboutSection,
+    Review,
+    ContactInfo,
+    CompanyPolicy,
+    product,
+    category,
+    Cart,
+    CartItem
+)
+
+from .serializers import (
+    BannerSerializer,
+    HomeSectionSerializer,
+    AboutSectionSerializer,
+    ReviewSerializer,
+    ContactInfoSerializer,
+    CompanyPolicySerializer,
+    ContactSubmissionSerializer,
+    ProductSerializer,
+    CategorySerializer,
+    CartSerializer,
+    CartItemSerializer,
+)
+
+# =========================
+# AUTH
+# =========================
+
+@api_view(["POST"])
+def register_user(request):
+    email = request.data.get("email")
+    password = request.data.get("password")
+    name = request.data.get("name")
+
+    if not email or not password or not name:
+        return Response(
+            {"error": "All fields are required"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    if User.objects.filter(username=email).exists():
+        return Response(
+            {"error": "User already exists"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    user = User.objects.create_user(
+        username=email,
+        email=email,
+        password=password,
+        first_name=name,
+    )
+
+    return Response(
+        {"message": "User registered successfully"},
+        status=status.HTTP_201_CREATED
+    )
 
 
-# about page 
+@api_view(["POST"])
+def login_user(request):
+    email = request.data.get("email")
+    password = request.data.get("password")
+
+    if not email or not password:
+        return Response(
+            {"error": "Email and password required"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    user = authenticate(username=email, password=password)
+
+    if not user:
+        return Response(
+            {"error": "Invalid credentials"},
+            status=status.HTTP_401_UNAUTHORIZED
+        )
+
+    refresh = RefreshToken.for_user(user)
+
+    return Response({
+        "access": str(refresh.access_token),
+        "refresh": str(refresh),
+        "user": {
+            "id": user.id,
+            "name": user.first_name,
+            "email": user.email,
+        }
+    })
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def protected_view(request):
+    return Response({"message": "You are logged in"})
+
+
+# =========================
+# CONTACT
+# =========================
+
+@api_view(["GET"])
+def get_contact_info(request):
+    contact = ContactInfo.objects.first()
+    serializer = ContactInfoSerializer(contact)
+    return Response(serializer.data)
+
+
+@api_view(["GET"])
+def get_company_policies(request):
+    policies = CompanyPolicy.objects.filter(is_active=True)
+    serializer = CompanyPolicySerializer(policies, many=True)
+    return Response(serializer.data)
+
+
+@api_view(["POST"])
+def submit_contact_form(request):
+    serializer = ContactSubmissionSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save()
+        return Response(
+            {"message": "Form submitted successfully"},
+            status=status.HTTP_201_CREATED
+        )
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+# =========================
+# REVIEWS
+# =========================
+
+@api_view(["POST"])
+def submit_review(request):
+    serializer = ReviewSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save()
+        return Response(
+            {"message": "Review submitted for admin approval"},
+            status=status.HTTP_201_CREATED
+        )
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(["GET"])
+def approved_reviews(request):
+    reviews = Review.objects.filter(is_approved=True).order_by("-created_at")
+    serializer = ReviewSerializer(reviews, many=True)
+    return Response(serializer.data)
+
+
+# =========================
+# CMS / STATIC
+# =========================
+
+@api_view(["GET"])
+def home_sections(request):
+    sections = HomeSection.objects.all().order_by("order")
+    serializer = HomeSectionSerializer(
+        sections, many=True, context={"request": request}
+    )
+    return Response(serializer.data)
+
+
+@api_view(["GET"])
+def banner_list(request):
+    banners = Banner.objects.filter(is_active=True)
+    serializer = BannerSerializer(banners, many=True)
+    return Response(serializer.data)
+
+
 @api_view(["GET"])
 def about_section(request):
     section = AboutSection.objects.filter(is_active=True).first()
@@ -19,81 +189,59 @@ def about_section(request):
     serializer = AboutSectionSerializer(section)
     return Response(serializer.data)
 
-# cms 
+
+# =========================
+# PRODUCTS & CATEGORIES
+# =========================
+
 @api_view(["GET"])
-def home_sections(request):
-    sections = HomeSection.objects.filter(is_active=True)
-    serializer = HomeSectionSerializer(sections, many=True)
-    return Response(serializer.data)
-
-
-# banner
-@api_view(["GET"])
-def banner_list(request):
-    banners = Banner.objects.filter(is_active=True)
-    serializer = BannerSerializer(banners, many=True)
-    return Response(serializer.data)
-
-
-from .models import product, category, Cart, CartItem
-from .serializers import (
-    ProductSerializer,
-    CategorySerializer,
-    CartSerializer,
-    CartItemSerializer
-)
-
-# ---------------- PRODUCTS LIST ----------------
-@api_view(['GET'])
 def get_Products(request):
     products = product.objects.all()
     serializer = ProductSerializer(products, many=True)
     return Response(serializer.data)
 
 
-# ---------------- PRODUCT DETAILS ----------------
-@api_view(['GET'])
+@api_view(["GET"])
 def get_Product(request, pk):
     single_product = get_object_or_404(product, id=pk)
     serializer = ProductSerializer(single_product)
     return Response(serializer.data)
 
 
-# ---------------- CATEGORIES LIST ----------------
-@api_view(['GET'])
+@api_view(["GET"])
 def get_Categories(request):
     categories = category.objects.all()
     serializer = CategorySerializer(categories, many=True)
     return Response(serializer.data)
 
 
-# ---------------- GET CART ----------------
-@api_view(['GET'])
+@api_view(["GET"])
+def get_products_by_category(request, slug):
+    category_obj = get_object_or_404(category, slug=slug)
+    products = product.objects.filter(category=category_obj)
+    serializer = ProductSerializer(products, many=True)
+    return Response(serializer.data)
+
+
+# =========================
+# CART (GUEST CART)
+# =========================
+
+@api_view(["GET"])
 def get_Cart(request):
     cart, _ = Cart.objects.get_or_create(user=None)
     serializer = CartSerializer(cart)
     return Response(serializer.data)
 
 
-# ---------------- ADD TO CART ----------------
-@api_view(['POST'])
+@api_view(["POST"])
 def add_to_Cart(request):
     product_id = request.data.get("product_id")
-    quantity = request.data.get("quantity", 1)
+    quantity = int(request.data.get("quantity", 1))
 
-    if product_id is None:
+    if not product_id:
         return Response(
             {"error": "product_id is required"},
-            status=status.HTTP_400_BAD_REQUEST
-        )
-
-    try:
-        quantity = int(quantity)
-        if quantity <= 0:
-            raise ValueError
-    except ValueError:
-        return Response(
-            {"error": "quantity must be a positive integer"},
             status=status.HTTP_400_BAD_REQUEST
         )
 
@@ -110,73 +258,53 @@ def add_to_Cart(request):
         item.quantity += quantity
         item.save()
 
-    return Response(
-        {
-            "message": "Product added to cart",
-            "cart": CartSerializer(cart).data
-        }
-    )
+    return Response({
+        "message": "Product added to cart",
+        "cart": CartSerializer(cart).data
+    })
 
 
-# ---------------- UPDATE CART QUANTITY ----------------
-@api_view(['POST'])
+@api_view(["POST"])
 def update_cart_quantity(request):
     item_id = request.data.get("item_id")
     quantity = request.data.get("quantity")
 
     if item_id is None or quantity is None:
         return Response(
-            {"error": "item_id and quantity are required"},
-            status=status.HTTP_400_BAD_REQUEST
-        )
-
-    try:
-        quantity = int(quantity)
-    except ValueError:
-        return Response(
-            {"error": "quantity must be a number"},
+            {"error": "item_id and quantity required"},
             status=status.HTTP_400_BAD_REQUEST
         )
 
     cart, _ = Cart.objects.get_or_create(user=None)
+    item = get_object_or_404(CartItem, id=item_id, cart=cart)
 
-    try:
-        item = CartItem.objects.get(id=item_id, cart=cart)
+    quantity = int(quantity)
+    if quantity <= 0:
+        item.delete()
+        return Response({"message": "Item removed"})
 
-        if quantity <= 0:
-            item.delete()
-            return Response({"message": "Item removed from cart"})
+    item.quantity = quantity
+    item.save()
 
-        item.quantity = quantity
-        item.save()
-
-        serializer = CartItemSerializer(item)
-        return Response(serializer.data)
-
-    except CartItem.DoesNotExist:
-        return Response(
-            {"error": "CartItem not found"},
-            status=status.HTTP_404_NOT_FOUND
-        )
+    return Response(CartItemSerializer(item).data)
 
 
-# ---------------- REMOVE FROM CART ----------------
-@api_view(['POST'])
+@api_view(["POST"])
 def remove_from_Cart(request):
     item_id = request.data.get("item_id")
 
-    if item_id is None:
+    if not item_id:
         return Response(
-            {"error": "item_id is required"},
+            {"error": "item_id required"},
             status=status.HTTP_400_BAD_REQUEST
         )
 
     cart, _ = Cart.objects.get_or_create(user=None)
     deleted, _ = CartItem.objects.filter(id=item_id, cart=cart).delete()
 
-    if deleted == 0:
+    if not deleted:
         return Response(
-            {"error": "CartItem not found"},
+            {"error": "Item not found"},
             status=status.HTTP_404_NOT_FOUND
         )
 

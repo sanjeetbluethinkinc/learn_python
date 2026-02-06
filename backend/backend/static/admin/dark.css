@@ -1,0 +1,107 @@
+/* =============================
+   GLOBAL
+============================= */
+body {
+    background-color: #0b0f19 !important;
+    color: #e5e7eb;
+}
+
+/* =============================
+   HEADER
+============================= */
+#header {
+    background-color: #020617 !important;
+    border-bottom: 1px solid #1e293b;
+}
+
+#header h1, #header h1 a {
+    color: #f97316 !important;
+}
+
+/* =============================
+   SIDEBAR
+============================= */
+#nav-sidebar {
+    background-color: #020617 !important;
+}
+
+#nav-sidebar a {
+    color: #cbd5f5 !important;
+}
+
+#nav-sidebar a:hover {
+    background-color: #1e293b !important;
+    color: #ffffff !important;
+}
+
+/* =============================
+   CONTENT
+============================= */
+#content {
+    background-color: #0b0f19 !important;
+}
+
+/* =============================
+   MODULES / CARDS
+============================= */
+.module, .dashboard-module {
+    background-color: #020617 !important;
+    border: 1px solid #1e293b;
+    border-radius: 8px;
+}
+
+/* =============================
+   TABLES
+============================= */
+thead th {
+    background-color: #020617 !important;
+    color: #e5e7eb !important;
+}
+
+tbody tr {
+    background-color: #0b0f19 !important;
+}
+
+tbody tr:nth-child(even) {
+    background-color: #020617 !important;
+}
+
+/* =============================
+   FORMS
+============================= */
+input, textarea, select {
+    background-color: #020617 !important;
+    color: #e5e7eb !important;
+    border: 1px solid #1e293b !important;
+}
+
+/* =============================
+   BUTTONS
+============================= */
+.button,
+input[type="submit"],
+input[type="button"] {
+    background-color: #f97316 !important;
+    color: #020617 !important;
+    border-radius: 6px;
+    border: none;
+}
+
+.button:hover {
+    background-color: #fb923c !important;
+}
+
+/* =============================
+   ACTION BAR
+============================= */
+.submit-row {
+    background-color: #020617 !important;
+}
+
+/* =============================
+   FILTER PANEL
+============================= */
+#changelist-filter {
+    background-color: #020617 !important;
+    border-left: 1px solid #1e293b;
+}

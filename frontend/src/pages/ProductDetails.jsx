@@ -90,59 +90,58 @@ function ProductDetails() {
 
         {/* LEFT: IMAGE SLIDER */}
         <div className="w-full max-w-xl mx-auto">
-  <div className="relative aspect-[4/3] bg-gray-100 rounded-xl overflow-hidden">
+          <div className="relative aspect-[4/3] bg-gray-100 rounded-xl overflow-hidden">
 
-    {/* Main Image */}
-    <img
-      src={images[currentIndex] || "https://via.placeholder.com/800x600"}
-      alt="product"
-      className="absolute inset-0 w-full h-full object-cover"
-    />
+            {/* Main Image */}
+            <img
+              src={images[currentIndex] || "https://via.placeholder.com/800x600"}
+              alt="product"
+              className="absolute inset-0 w-full h-full object-cover"
+            />
 
-    {/* Next button */}
-    {images.length > 1 && (
-      <button
-        onClick={nextImage}
-        className="absolute right-4 top-1/2 -translate-y-1/2
+            {/* Next button */}
+            {images.length > 1 && (
+              <button
+                onClick={nextImage}
+                className="absolute right-4 top-1/2 -translate-y-1/2
                    w-11 h-11 flex items-center justify-center
                    bg-white/80 backdrop-blur-md
                    rounded-full shadow-lg
                    hover:bg-white hover:scale-105
                    active:scale-95 transition"
-        aria-label="Next image"
-      >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          className="w-5 h-5 text-gray-700"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={2}
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-        </svg>
-      </button>
-    )}
-  </div>
+                aria-label="Next image"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="w-5 h-5 text-gray-700"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            )}
+          </div>
 
-  {/* Thumbnails */}
-  <div className="flex gap-3 mt-4 justify-center flex-wrap">
-    {images.map((img, index) => (
-      <img
-        key={index}
-        src={img}
-        alt={`thumb-${index}`}
-        onClick={() => setCurrentIndex(index)}
-        className={`w-20 h-16 object-cover rounded-md border cursor-pointer transition
-          ${
-            currentIndex === index
-              ? "border-orange-500 ring-2 ring-orange-200"
-              : "border-gray-300 hover:border-gray-400"
-          }`}
-      />
-    ))}
-  </div>
-</div>
+          {/* Thumbnails */}
+          <div className="flex gap-3 mt-4 justify-center flex-wrap">
+            {images.map((img, index) => (
+              <img
+                key={index}
+                src={img}
+                alt={`thumb-${index}`}
+                onClick={() => setCurrentIndex(index)}
+                className={`w-20 h-16 object-cover rounded-md border cursor-pointer transition
+          ${currentIndex === index
+                    ? "border-orange-500 ring-2 ring-orange-200"
+                    : "border-gray-300 hover:border-gray-400"
+                  }`}
+              />
+            ))}
+          </div>
+        </div>
 
 
         {/* RIGHT: DETAILS */}
@@ -153,6 +152,9 @@ function ProductDetails() {
 
           <p className="text-2xl font-semibold mb-8">
             ₹{Number(product.price).toFixed(2)}
+          </p>
+          <p className="text-sm text-gray-500">
+            SKU: <span className="font-medium">{product.sku}</span>
           </p>
 
           {/* Quantity */}
@@ -181,10 +183,9 @@ function ProductDetails() {
             onClick={handleAddToCart}
             disabled={adding}
             className={`px-10 py-3 rounded-full font-semibold transition
-              ${
-                adding
-                  ? "bg-orange-300"
-                  : "bg-orange-400 hover:bg-orange-500 text-white"
+              ${adding
+                ? "bg-orange-300"
+                : "bg-orange-400 hover:bg-orange-500 text-white"
               }`}
           >
             {adding ? "Adding..." : "Add to Bag"}

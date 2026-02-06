@@ -2,6 +2,8 @@ from rest_framework import serializers
 from .models import HomeSection
 from .models import AboutSection
 from rest_framework import serializers
+from .models import ContactInfo, CompanyPolicy, ContactSubmission
+from .models import Review
 from .models import (
     category,
     product,
@@ -13,6 +15,31 @@ from .models import (
     OrderItem,
 )
 
+# contact 
+class ContactInfoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ContactInfo
+        fields = "__all__"
+
+
+class CompanyPolicySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CompanyPolicy
+        fields = "__all__"
+
+
+class ContactSubmissionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ContactSubmission
+        fields = "__all__"
+        
+
+# ratings
+class ReviewSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Review
+        fields = "__all__"
+        read_only_fields = ["is_approved", "created_at"]
 
 # about page 
 
