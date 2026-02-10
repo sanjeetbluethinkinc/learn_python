@@ -5,6 +5,17 @@ python manage.py runserver
 
 
 
+I have worked on Appointment, Patient Health Educaiton, External Resources, Haram Medication, Primary Care Clinic, Vaccine Clinic Pop Ups, Dental Clinic, Dermatology Clinic, Mind Clinic, Podiatry Clinic, Diabetic Retinopathy Clinic, Women’s Health Care Clinic these pages that i have fixed css and i have created its html on wordpress admin dashboard 
+
+
+
+ 
+
+
+
+
+
+
 
 
 
