@@ -9,8 +9,8 @@ function CartPage() {
     0
   );
 
-  const shippingFee = subtotal < 199 && subtotal > 0 ? 99 : 0;
-  const total = subtotal + shippingFee;
+  const shipping_fee = subtotal < 199 && subtotal > 0 ? 99 : 0;
+  const total = subtotal + shipping_fee;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-orange-50 to-white py-10 px-4">
@@ -113,12 +113,12 @@ function CartPage() {
               <div className="flex justify-between">
                 <span>Shipping</span>
                 <span>
-                  {shippingFee === 0 ? (
+                  {shipping_fee === 0 ? (
                     <span className="text-green-600 font-medium">
                       Free
                     </span>
                   ) : (
-                    `₹${shippingFee}`
+                    `₹${shipping_fee}`
                   )}
                 </span>
               </div>
@@ -128,7 +128,7 @@ function CartPage() {
                 <span>₹{total.toFixed(2)}</span>
               </div>
 
-              {shippingFee > 0 && (
+              {shipping_fee > 0 && (
                 <p className="text-sm text-gray-500">
                   Add ₹{(199 - subtotal).toFixed(2)} more for free shipping.
                 </p>

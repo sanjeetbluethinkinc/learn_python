@@ -99,9 +99,20 @@ class ProductImageInline(admin.TabularInline):
 
 @admin.register(product)
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ("name", "category", "price", "created_at")
-    list_filter = ("category",)
-    search_fields = ("name",)
+    list_display = (
+        "name",
+        "sku",          # ✅ NEW
+        "category",
+        "price",
+        "quantity",     # ✅ NEW
+        "is_in_stock",  # ✅ NEW
+        "created_at",
+    )
+
+    list_editable = ("price", "quantity")   # ✅ quick edit
+    list_filter = ("category", "quantity")
+    search_fields = ("name", "sku")
+
     inlines = [ProductImageInline]
 
 

@@ -1,16 +1,50 @@
+import { useState } from "react";
+import Swal from "sweetalert2";
 import { useCart } from "../../context/CartContext";
 
 function CartPage() {
   const { cartItems, removeFromCart, updateQuantity } = useCart();
   const BASEURL = import.meta.env.VITE_DJANGO_BASE_URL;
 
+  const [removingId, setRemovingId] = useState(null);
+
   const subtotal = cartItems.reduce(
     (sum, item) => sum + Number(item.price) * item.quantity,
     0
   );
 
-  const shippingFee = subtotal < 199 && subtotal > 0 ? 99 : 0;
-  const total = subtotal + shippingFee;
+  const shipping_fee = subtotal < 199 && subtotal > 0 ? 99 : 0;
+  const total = subtotal + shipping_fee;
+
+  /* ================= REMOVE ITEM ================= */
+  const handleRemove = (id, name) => {
+    setRemovingId(id);
+
+    setTimeout(() => {
+      removeFromCart(id);
+      setRemovingId(null);
+
+      Swal.fire({
+        icon: "success",
+        title: "Removed from Cart",
+        text: `${name} removed successfully.`,
+        timer: 1400,
+        showConfirmButton: false,
+      });
+    }, 500);
+  };
+
+  /* ================= INCREASE QUANTITY (MAX 5) ================= */
+  const handleIncrease = (item) => {
+    if (item.quantity >= 5) return; // ⛔ hard limit
+    updateQuantity(item.id, item.quantity + 1);
+  };
+
+  /* ================= DECREASE QUANTITY ================= */
+  const handleDecrease = (item) => {
+    if (item.quantity === 1) return;
+    updateQuantity(item.id, item.quantity - 1);
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-orange-50 to-white py-10 px-4">
@@ -25,7 +59,7 @@ function CartPage() {
       ) : (
         <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-          {/* 🛒 CART ITEMS */}
+          {/* ================= CART ITEMS ================= */}
           <div className="lg:col-span-2 space-y-6">
             {cartItems.map((item) => {
               const imageUrl = item.image
@@ -34,36 +68,43 @@ function CartPage() {
                   : `${BASEURL}${item.image}`
                 : "https://via.placeholder.com/150";
 
+              const isRemoving = removingId === item.id;
+
               return (
                 <div
                   key={item.id}
-                  className="bg-white rounded-2xl shadow-sm border p-5 flex gap-6 items-center"
+                  className={`bg-white rounded-2xl shadow-sm border p-5 flex gap-6 items-center
+                    transition-all duration-500 ease-in-out
+                    ${
+                      isRemoving
+                        ? "opacity-0 scale-95 -translate-x-4"
+                        : "opacity-100 scale-100"
+                    }`}
                 >
-                  {/* Image */}
+                  {/* IMAGE */}
                   <img
                     src={imageUrl}
                     alt={item.name}
                     className="w-28 h-28 object-cover rounded-xl border"
                   />
 
-                  {/* Info */}
+                  {/* INFO */}
                   <div className="flex-1">
                     <h2 className="text-xl font-semibold text-gray-800">
                       {item.name}
                     </h2>
-                    <p className="text-gray-500 mt-1">
+
+                    <p className="text-gray-600 mt-1">
                       ₹{Number(item.price).toFixed(2)}
                     </p>
 
-                    {/* Quantity */}
+                    {/* QUANTITY CONTROLS */}
                     <div className="flex items-center gap-3 mt-4">
                       <button
-                        onClick={() =>
-                          updateQuantity(item.id, Math.max(1, item.quantity - 1))
-                        }
-                        className="w-9 h-9 rounded-full border
-                                   flex items-center justify-center
-                                   hover:bg-gray-100 transition"
+                        disabled={item.quantity === 1 || isRemoving}
+                        onClick={() => handleDecrease(item)}
+                        className="w-9 h-9 rounded-full border flex items-center justify-center
+                                   hover:bg-gray-100 transition disabled:opacity-40"
                       >
                         −
                       </button>
@@ -73,32 +114,47 @@ function CartPage() {
                       </span>
 
                       <button
-                        onClick={() =>
-                          updateQuantity(item.id, item.quantity + 1)
-                        }
-                        className="w-9 h-9 rounded-full border
-                                   flex items-center justify-center
-                                   hover:bg-gray-100 transition"
+                        disabled={isRemoving || item.quantity >= 5}
+                        onClick={() => handleIncrease(item)}
+                        className="w-9 h-9 rounded-full border flex items-center justify-center
+                                   hover:bg-gray-100 transition disabled:opacity-40"
                       >
                         +
                       </button>
                     </div>
+
+                    {/* LIMIT INFO */}
+                    <p className="text-xs text-gray-500 mt-2">
+                      Max quantity allowed: 5
+                    </p>
                   </div>
 
-                  {/* Remove */}
+                  {/* REMOVE BUTTON */}
                   <button
-                    onClick={() => removeFromCart(item.id)}
-                    className="text-red-500 hover:text-red-600
-                               font-medium transition"
+                    disabled={isRemoving}
+                    onClick={() => handleRemove(item.id, item.name)}
+                    className={`font-medium transition flex items-center gap-2
+                      ${
+                        isRemoving
+                          ? "text-gray-400 cursor-not-allowed"
+                          : "text-red-500 hover:text-red-600"
+                      }`}
                   >
-                    Remove
+                    {isRemoving ? (
+                      <>
+                        <span className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></span>
+                        Removing...
+                      </>
+                    ) : (
+                      "Remove"
+                    )}
                   </button>
                 </div>
               );
             })}
           </div>
 
-          {/* 💳 ORDER SUMMARY */}
+          {/* ================= ORDER SUMMARY ================= */}
           <div className="bg-white rounded-2xl shadow-md border p-6 h-fit sticky top-24">
             <h3 className="text-2xl font-semibold mb-6 text-gray-800">
               Order Summary
@@ -113,12 +169,10 @@ function CartPage() {
               <div className="flex justify-between">
                 <span>Shipping</span>
                 <span>
-                  {shippingFee === 0 ? (
-                    <span className="text-green-600 font-medium">
-                      Free
-                    </span>
+                  {shipping_fee === 0 ? (
+                    <span className="text-green-600 font-medium">Free</span>
                   ) : (
-                    `₹${shippingFee}`
+                    `₹${shipping_fee}`
                   )}
                 </span>
               </div>
@@ -127,20 +181,12 @@ function CartPage() {
                 <span>Total</span>
                 <span>₹{total.toFixed(2)}</span>
               </div>
-
-              {shippingFee > 0 && (
-                <p className="text-sm text-gray-500">
-                  Add ₹{(199 - subtotal).toFixed(2)} more for free shipping.
-                </p>
-              )}
             </div>
 
-            {/* Checkout */}
             <button
               onClick={() => (window.location.href = "/checkout")}
-              className="mt-6 w-full bg-orange-500 text-white
-                         py-3 rounded-xl text-lg font-semibold
-                         hover:bg-orange-600 active:scale-95 transition"
+              className="mt-6 w-full bg-orange-500 text-white py-3 rounded-xl
+                         text-lg font-semibold hover:bg-orange-600 active:scale-95 transition"
             >
               Buy Now
             </button>

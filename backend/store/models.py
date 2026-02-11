@@ -1,5 +1,25 @@
 from django.db import models
 from django.contrib.auth.models import User
+import uuid
+
+# ==========================
+# ORDER ADDRESS (CHECKOUT)
+# ==========================
+class OrderAddress(models.Model):
+    order = models.OneToOneField(
+        "Order",
+        related_name="address",
+        on_delete=models.CASCADE
+    )
+    full_name = models.CharField(max_length=100)
+    phone = models.CharField(max_length=20)
+    street = models.TextField()
+    city = models.CharField(max_length=50)
+    state = models.CharField(max_length=50)
+    zip_code = models.CharField(max_length=10)
+
+    def __str__(self):
+        return f"Address for Order {self.order.id}"
 
 
 # ==========================
@@ -47,7 +67,9 @@ class ContactSubmission(models.Model):
         return self.name
 
 
-# ratings 
+# ==========================
+# REVIEWS
+# ==========================
 class Review(models.Model):
     RATING_CHOICES = [(i, i) for i in range(1, 6)]
 
@@ -60,7 +82,10 @@ class Review(models.Model):
     def __str__(self):
         return f"{self.name} - {self.rating}★"
 
-# cms
+
+# ==========================
+# HOME CMS
+# ==========================
 class HomeSection(models.Model):
     subtitle = models.CharField(max_length=100)
     title = models.CharField(max_length=200)
@@ -72,10 +97,11 @@ class HomeSection(models.Model):
 
     def __str__(self):
         return self.title
-    
 
 
-# ---------------- CATEGORY ----------------
+# ==========================
+# CATEGORY
+# ==========================
 class category(models.Model):
     name = models.CharField(max_length=100)
     slug = models.SlugField(unique=True)
@@ -84,15 +110,26 @@ class category(models.Model):
         return self.name
 
 
-# ---------------- PRODUCT ----------------
+# ==========================
+# PRODUCT
+# ==========================
 class product(models.Model):
     category = models.ForeignKey(
         category,
         related_name="products",
         on_delete=models.CASCADE
     )
+
     name = models.CharField(max_length=200)
+
+    sku = models.CharField(
+        max_length=100,
+        null=True,
+        blank=True
+    )
+
     description = models.TextField(blank=True)
+
     price = models.DecimalField(max_digits=10, decimal_places=2)
 
     image = models.ImageField(
@@ -101,13 +138,26 @@ class product(models.Model):
         null=True
     )
 
+    quantity = models.PositiveIntegerField(default=0)
+
     created_at = models.DateTimeField(auto_now_add=True)
 
+    def save(self, *args, **kwargs):
+        # ✅ SAFE, UNIQUE, MIGRATION-PROOF SKU
+        if not self.sku:
+            self.sku = f"SKU-{uuid.uuid4().hex[:10].upper()}"
+        super().save(*args, **kwargs)
+
+    def is_in_stock(self):
+        return self.quantity > 0
+
     def __str__(self):
-        return self.name
+        return f"{self.name} ({self.sku})"
 
 
-# ---------------- PRODUCT IMAGES ----------------
+# ==========================
+# PRODUCT GALLERY
+# ==========================
 class ProductImage(models.Model):
     product = models.ForeignKey(
         product,
@@ -121,14 +171,15 @@ class ProductImage(models.Model):
         return f"Image for {self.product.name}"
 
 
-# ---------------- BANNER (ADMIN CONTROLLED) ----------------
+# ==========================
+# BANNERS
+# ==========================
 class Banner(models.Model):
     title = models.CharField(max_length=200)
     subtitle = models.TextField(blank=True)
 
     image = models.ImageField(upload_to="banners/")
 
-    # CTA button (admin controlled)
     button_text = models.CharField(
         max_length=50,
         default="Learn More",
@@ -139,7 +190,6 @@ class Banner(models.Model):
         help_text="Full URL or frontend route"
     )
 
-    # Optional product linking (SAFE string reference)
     product = models.ForeignKey(
         "product",
         on_delete=models.SET_NULL,
@@ -150,7 +200,6 @@ class Banner(models.Model):
 
     is_active = models.BooleanField(default=True)
     order = models.PositiveIntegerField(default=0)
-
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -160,7 +209,9 @@ class Banner(models.Model):
         return self.title
 
 
-# ---------------- USER PROFILE ----------------
+# ==========================
+# USER PROFILE
+# ==========================
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     address = models.CharField(max_length=255, blank=True)
@@ -171,7 +222,9 @@ class UserProfile(models.Model):
         return self.user.username
 
 
-# ---------------- CART ----------------
+# ==========================
+# CART
+# ==========================
 class Cart(models.Model):
     user = models.ForeignKey(
         User,
@@ -193,7 +246,9 @@ class Cart(models.Model):
         return sum(item.subtotal for item in self.items.all())
 
 
-# ---------------- CART ITEM ----------------
+# ==========================
+# CART ITEM
+# ==========================
 class CartItem(models.Model):
     cart = models.ForeignKey(
         Cart,
@@ -211,17 +266,28 @@ class CartItem(models.Model):
         return self.quantity * self.product.price
 
 
-# ---------------- ORDER ----------------
+# ==========================
+# ORDER
+# ==========================
 class Order(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    created_at = models.DateTimeField(auto_now_add=True)
+    user = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True
+    )
+    subtotal = models.DecimalField(max_digits=10, decimal_places=2)
+    shipping_fee = models.DecimalField(max_digits=10, decimal_places=2)
     total_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f"Order {self.id}"
 
 
-# ---------------- ORDER ITEM ----------------
+# ==========================
+# ORDER ITEM
+# ==========================
 class OrderItem(models.Model):
     order = models.ForeignKey(
         Order,
@@ -236,21 +302,20 @@ class OrderItem(models.Model):
         return f"{self.quantity} x {self.product.name}"
 
 
-
-#    about 
+# ==========================
+# ABOUT PAGE CMS
+# ==========================
 class AboutSection(models.Model):
     title = models.CharField(max_length=200)
     description = models.TextField()
 
     background_image = models.ImageField(upload_to="about/")
 
-    # Right side checklist (4 points like image)
     point_1 = models.CharField(max_length=200)
     point_2 = models.CharField(max_length=200)
     point_3 = models.CharField(max_length=200)
     point_4 = models.CharField(max_length=200)
 
-    # Bottom story section
     story_label = models.CharField(
         max_length=100,
         default="OUR STORY"

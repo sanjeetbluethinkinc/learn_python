@@ -9,8 +9,8 @@ function CheckoutPage() {
     0
   );
 
-  const shippingFee = subtotal < 199 && subtotal > 0 ? 99 : 0;
-  const total = subtotal + shippingFee;
+  const shipping_fee = subtotal < 199 && subtotal > 0 ? 99 : 0;
+  const total = subtotal + shipping_fee;
 
   const [address, setAddress] = useState({
     fullName: "",
@@ -43,7 +43,7 @@ function CheckoutPage() {
       address,
       cartItems,
       subtotal,
-      shippingFee,
+      shipping_fee,
       total,
     };
 
@@ -137,12 +137,12 @@ function CheckoutPage() {
             <div className="flex justify-between">
               <span>Shipping</span>
               <span>
-                {shippingFee === 0 ? (
+                {shipping_fee === 0 ? (
                   <span className="text-green-600 font-medium">
                     Free
                   </span>
                 ) : (
-                  `₹${shippingFee}`
+                  `₹${shipping_fee}`
                 )}
               </span>
             </div>

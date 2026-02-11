@@ -2,6 +2,7 @@ from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
+from .models import Order, OrderItem
 from django.shortcuts import get_object_or_404
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
@@ -34,6 +35,84 @@ from .serializers import (
     CartSerializer,
     CartItemSerializer,
 )
+
+
+from .serializers import OrderSerializer
+from django.db import transaction
+from .models import Order, OrderItem, OrderAddress, Cart
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def my_orders(request):
+    orders = Order.objects.filter(user=request.user).order_by("-created_at")
+    serializer = OrderSerializer(orders, many=True)
+    return Response(serializer.data)
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def create_order(request):
+    data = request.data
+    user = request.user
+
+    order = Order.objects.create(
+        user=user,
+        subtotal=data["subtotal"],
+        shipping_fee=data["shipping_fee"],   # ✅ FIXED
+        total_amount=data["total_amount"],   # ✅ FIXED
+    )
+
+    for item in data["items"]:
+        OrderItem.objects.create(
+            order=order,
+            product_id=item["product"],
+            quantity=item["quantity"],
+            price=item["price"],
+        )
+
+    OrderAddress.objects.create(
+        order=order,
+        full_name=data["address"]["full_name"],
+        phone=data["address"]["phone"],
+        street=data["address"]["street"],
+        city=data["address"]["city"],
+        state=data["address"]["state"],
+        zip_code=data["address"]["zip_code"],
+    )
+
+    return Response({"success": True}, status=201)
+
+
+    # 3️⃣ CREATE ORDER ITEMS + STOCK CHECK
+    for item in cart.items.all():
+        product = item.product
+
+        if product.quantity < item.quantity:
+            return Response(
+                {"error": f"{product.name} is out of stock"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        OrderItem.objects.create(
+            order=order,
+            product=product,
+            quantity=item.quantity,
+            price=product.price,
+        )
+
+        product.quantity -= item.quantity
+        product.save()
+
+    # 4️⃣ CLEAR CART
+    cart.items.all().delete()
+
+    return Response(
+        {
+            "message": "Order placed successfully",
+            "order_id": order.id
+        },
+        status=status.HTTP_201_CREATED
+    )
 
 # =========================
 # AUTH
@@ -228,14 +307,17 @@ def get_products_by_category(request, slug):
 # =========================
 
 @api_view(["GET"])
+@permission_classes([IsAuthenticated])
 def get_Cart(request):
-    cart, _ = Cart.objects.get_or_create(user=None)
+    cart, _ = Cart.objects.get_or_create(user=request.user)
     serializer = CartSerializer(cart)
     return Response(serializer.data)
 
 
 @api_view(["POST"])
+@permission_classes([IsAuthenticated])
 def add_to_Cart(request):
+    user = request.user
     product_id = request.data.get("product_id")
     quantity = int(request.data.get("quantity", 1))
 
@@ -246,7 +328,15 @@ def add_to_Cart(request):
         )
 
     product_obj = get_object_or_404(product, id=product_id)
-    cart, _ = Cart.objects.get_or_create(user=None)
+
+    # 🔥 BLOCK OUT OF STOCK
+    if product_obj.quantity <= 0:
+        return Response(
+            {"error": "Product is out of stock"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    cart, _ = Cart.objects.get_or_create(user=user)
 
     item, created = CartItem.objects.get_or_create(
         cart=cart,
@@ -255,6 +345,11 @@ def add_to_Cart(request):
     )
 
     if not created:
+        if item.quantity + quantity > product_obj.quantity:
+            return Response(
+                {"error": "Not enough stock available"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
         item.quantity += quantity
         item.save()
 
@@ -279,6 +374,14 @@ def update_cart_quantity(request):
     item = get_object_or_404(CartItem, id=item_id, cart=cart)
 
     quantity = int(quantity)
+
+    # 🔥 CHECK STOCK
+    if quantity > item.product.quantity:
+        return Response(
+            {"error": "Requested quantity exceeds available stock"},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
     if quantity <= 0:
         item.delete()
         return Response({"message": "Item removed"})
