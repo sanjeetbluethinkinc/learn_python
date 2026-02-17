@@ -1,14 +1,14 @@
+from django.shortcuts import get_object_or_404
+from django.contrib.auth import authenticate
+from django.contrib.auth.models import User
+from django.db import transaction
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
-from .models import Order, OrderItem
-from django.shortcuts import get_object_or_404
-from django.contrib.auth.models import User
-from django.contrib.auth import authenticate
-
+import razorpay
+from django.conf import settings
 from rest_framework_simplejwt.tokens import RefreshToken
-
 from .models import (
     Banner,
     HomeSection,
@@ -16,10 +16,14 @@ from .models import (
     Review,
     ContactInfo,
     CompanyPolicy,
-    product,
     category,
+    product,
     Cart,
-    CartItem
+    CartItem,
+    Order,
+    OrderItem,
+    OrderAddress,
+    Payment,
 )
 
 from .serializers import (
@@ -30,16 +34,245 @@ from .serializers import (
     ContactInfoSerializer,
     CompanyPolicySerializer,
     ContactSubmissionSerializer,
-    ProductSerializer,
+    ProductSerializer,      
+     ProductSerializer,    
     CategorySerializer,
     CartSerializer,
     CartItemSerializer,
+    OrderSerializer,
+    ProductQuestion,
+    ProductReviewSerializer,
+    ProductReview,
+    ProductQuestionSerializer,
 )
 
 
-from .serializers import OrderSerializer
-from django.db import transaction
-from .models import Order, OrderItem, OrderAddress, Cart
+@api_view(["GET"])
+def approved_product_reviews(request, product_id):
+    reviews = ProductReview.objects.filter(
+        product_id=product_id,
+        is_approved=True
+    )
+    serializer = ProductReviewSerializer(reviews, many=True)
+    return Response(serializer.data)
+
+
+@api_view(["POST"])
+def submit_product_review(request):
+    serializer = ProductReviewSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save()
+        return Response(
+            {"message": "Review submitted for admin approval"},
+            status=201
+        )
+    return Response(serializer.errors, status=400)
+@api_view(["GET"])
+def product_questions(request, product_id):
+    questions = ProductQuestion.objects.filter(
+        product_id=product_id,
+        is_answered=True
+    )
+    serializer = ProductQuestionSerializer(questions, many=True)
+    return Response(serializer.data)
+
+
+@api_view(["POST"])
+def submit_product_question(request):
+    serializer = ProductQuestionSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save()
+        return Response(
+            {"message": "Question submitted to admin"},
+            status=201
+        )
+    return Response(serializer.errors, status=400)
+
+
+
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def verify_payment(request):
+    try:
+        order_id = request.data.get("order_id")
+        razorpay_order_id = request.data.get("razorpay_order_id")
+        razorpay_payment_id = request.data.get("razorpay_payment_id")
+        razorpay_signature = request.data.get("razorpay_signature")
+
+        if not all([order_id, razorpay_order_id, razorpay_payment_id, razorpay_signature]):
+            return Response(
+                {"error": "Missing payment details"},
+                status=400
+            )
+
+        # 🔐 Initialize Razorpay client
+        client = razorpay.Client(
+            auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET)
+        )
+
+        # 🔐 Verify Signature
+        client.utility.verify_payment_signature({
+            "razorpay_order_id": razorpay_order_id,
+            "razorpay_payment_id": razorpay_payment_id,
+            "razorpay_signature": razorpay_signature,
+        })
+
+        # ✅ Update Order
+        order = Order.objects.get(id=order_id, user=request.user)
+
+        order.payment_status = "SUCCESS"
+        order.is_paid = True
+        order.status = "CONFIRMED"
+        order.save()
+
+        # ✅ Update Payment record
+        payment = Payment.objects.get(order=order)
+        payment.status = "SUCCESS"
+        payment.save()
+
+        return Response({"message": "Payment verified successfully"})
+
+    except razorpay.errors.SignatureVerificationError:
+        return Response(
+            {"error": "Invalid payment signature"},
+            status=400
+        )
+
+    except Order.DoesNotExist:
+        return Response(
+            {"error": "Order not found"},
+            status=404
+        )
+
+    except Exception as e:
+        return Response(
+            {"error": str(e)},
+            status=400
+        )
+# ======================================================
+# CREATE ORDER (COD or ONLINE)
+# ======================================================
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def create_order(request):
+    user = request.user
+    data = request.data
+
+    try:
+        with transaction.atomic():
+            # 1️⃣ VALIDATE DATA
+            items = data.get("items", [])
+            address = data.get("address")
+            payment_method = data.get("payment_method", "COD")
+
+            if not items:
+                return Response({"error": "No order items found"}, status=400)
+
+            if not address:
+                return Response({"error": "Address is required"}, status=400)
+
+            # 2️⃣ CREATE ORDER (always PENDING initially)
+            order = Order.objects.create(
+                user=user,
+                subtotal=data.get("subtotal", 0),
+                shipping_fee=data.get("shipping_fee", 0),
+                total_amount=data.get("total_amount", 0),
+                status="PENDING",
+                payment_status="PENDING",
+                is_paid=False,
+            )
+
+            # 3️⃣ SAVE ADDRESS
+            OrderAddress.objects.create(
+                order=order,
+                full_name=address.get("full_name"),
+                phone=address.get("phone"),
+                street=address.get("street"),
+                city=address.get("city"),
+                state=address.get("state"),
+                zip_code=address.get("zip_code"),
+            )
+
+            # 4️⃣ CREATE ORDER ITEMS + REDUCE STOCK
+            for item in items:
+                product_obj = product   .objects.select_for_update().get(id=item["product"])
+
+                if product_obj.quantity < item["quantity"]:
+                    raise Exception(f"{product_obj.name} is out of stock")
+
+                product_obj.quantity -= item["quantity"]
+                product_obj.save()
+
+                OrderItem.objects.create(
+                    order=order,
+                    product=product_obj,
+                    quantity=item["quantity"],
+                    price=item["price"],
+                )
+
+            # 5️⃣ CREATE PAYMENT RECORD
+            payment = Payment.objects.create(
+                user=user,
+                order=order,
+                payment_method=payment_method,
+                amount=order.total_amount,
+                status="PENDING",
+            )
+
+            # 6️⃣ COD FLOW
+            if payment_method == "COD":
+                order.status = "CONFIRMED"
+                order.payment_status = "PENDING"
+                order.is_paid = False
+                order.save()
+
+            return Response(
+                {
+                    "message": "Order created successfully",
+                    "order_id": order.id,
+                    "payment_method": payment_method,
+                },
+                status=201,
+            )
+
+    except Exception as e:
+        return Response({"error": str(e)}, status=400)
+
+
+# ======================================================
+# CREATE RAZORPAY PAYMENT (ONLINE ONLY)
+# ======================================================
+@api_view(["POST"])
+@permission_classes([IsAuthenticated])
+def create_payment(request):
+    order_id = request.data.get("order_id")
+
+    try:
+        order = Order.objects.get(id=order_id, user=request.user)
+    except Order.DoesNotExist:
+        return Response({"error": "Order not found"}, status=404)
+
+    if order.is_paid:
+        return Response({"error": "Order already paid"}, status=400)
+
+    client = razorpay.Client(
+        auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET)
+    )
+
+    razorpay_order = client.order.create({
+        "amount": int(order.total_amount * 100),  # rupees → paise
+        "currency": "INR",
+        "payment_capture": 1,
+    })
+
+    return Response({
+        "razorpay_key": settings.RAZORPAY_KEY_ID,
+        "razorpay_order_id": razorpay_order["id"],
+        "amount": razorpay_order["amount"],
+        "currency": "INR",
+        "order_id": order.id,
+    })
+
 
 @api_view(["GET"])
 @permission_classes([IsAuthenticated])
@@ -52,35 +285,96 @@ def my_orders(request):
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def create_order(request):
-    data = request.data
+    
     user = request.user
+    data = request.data
 
-    order = Order.objects.create(
-        user=user,
-        subtotal=data["subtotal"],
-        shipping_fee=data["shipping_fee"],   # ✅ FIXED
-        total_amount=data["total_amount"],   # ✅ FIXED
-    )
+    try:
+        with transaction.atomic():
 
-    for item in data["items"]:
-        OrderItem.objects.create(
-            order=order,
-            product_id=item["product"],
-            quantity=item["quantity"],
-            price=item["price"],
-        )
+            items = data.get("items", [])
+            address = data.get("address")
+            payment_method = data.get("payment_method", "COD")
 
-    OrderAddress.objects.create(
-        order=order,
-        full_name=data["address"]["full_name"],
-        phone=data["address"]["phone"],
-        street=data["address"]["street"],
-        city=data["address"]["city"],
-        state=data["address"]["state"],
-        zip_code=data["address"]["zip_code"],
-    )
+            if not items:
+                return Response({"error": "No order items found"}, status=400)
 
-    return Response({"success": True}, status=201)
+            if not address:
+                return Response({"error": "Address is required"}, status=400)
+
+            order = Order.objects.create(
+                user=user,
+                subtotal=data.get("subtotal", 0),
+                shipping_fee=data.get("shipping_fee", 0),
+                total_amount=data.get("total_amount", 0),
+                status="PENDING",
+                payment_status="PENDING",
+                is_paid=False,
+            )
+
+            OrderAddress.objects.create(
+                order=order,
+                full_name=address.get("full_name"),
+                phone=address.get("phone"),
+                street=address.get("street"),
+                city=address.get("city"),
+                state=address.get("state"),
+                zip_code=address.get("zip_code"),
+            )
+
+            for item in items:
+                product_id = item.get("product")
+                quantity = item.get("quantity")
+
+                if not product_id or not quantity:
+                    return Response(
+                        {"error": "Invalid order item"},
+                        status=400
+                    )
+
+                product_obj = product.objects.select_for_update().get(
+                    id=product_id
+                )
+
+                if product_obj.quantity < quantity:
+                    return Response(
+                        {"error": f"{product_obj.name} is out of stock"},
+                        status=400
+                    )
+
+                product_obj.quantity -= quantity
+                product_obj.save()
+
+                OrderItem.objects.create(
+                    order=order,
+                    product=product_obj,
+                    quantity=quantity,
+                    price=item.get("price"),
+                )
+
+            Payment.objects.create(
+                user=user,
+                order=order,
+                payment_method=payment_method,
+                amount=order.total_amount,
+                status="PENDING",
+            )
+
+            if payment_method == "COD":
+                order.status = "CONFIRMED"
+                order.save()
+
+            return Response(
+                {
+                    "message": "Order created successfully",
+                    "order_id": order.id,
+                },
+                status=201,
+            )
+
+    except Exception as e:
+        return Response({"error": str(e)}, status=400)
+
 
 
     # 3️⃣ CREATE ORDER ITEMS + STOCK CHECK
@@ -270,22 +564,35 @@ def about_section(request):
 
 
 # =========================
-# PRODUCTS & CATEGORIES
+# productS & CATEGORIES
 # =========================
-
 @api_view(["GET"])
-def get_Products(request):
-    products = product.objects.all()
-    serializer = ProductSerializer(products, many=True)
+def get_products(request):
+    """
+    /api/products/
+    /api/products/?category=<slug>
+    """
+    category_slug = request.GET.get("category")
+
+    products_qs = product.objects.all()
+
+    if category_slug:
+        products_qs = products_qs.filter(category__slug=category_slug)
+
+    serializer = ProductSerializer(products_qs, many=True)
     return Response(serializer.data)
 
 
 @api_view(["GET"])
-def get_Product(request, pk):
+def get_product(request, pk):
     single_product = get_object_or_404(product, id=pk)
-    serializer = ProductSerializer(single_product)
+    serializer = ProductSerializer(single_product) 
     return Response(serializer.data)
 
+
+# =========================
+# CATEGORIES
+# =========================
 
 @api_view(["GET"])
 def get_Categories(request):
@@ -294,14 +601,13 @@ def get_Categories(request):
     return Response(serializer.data)
 
 
+# (OPTIONAL – keep only if you still use it somewhere)
 @api_view(["GET"])
 def get_products_by_category(request, slug):
     category_obj = get_object_or_404(category, slug=slug)
     products = product.objects.filter(category=category_obj)
     serializer = ProductSerializer(products, many=True)
     return Response(serializer.data)
-
-
 # =========================
 # CART (GUEST CART)
 # =========================
@@ -332,7 +638,7 @@ def add_to_Cart(request):
     # 🔥 BLOCK OUT OF STOCK
     if product_obj.quantity <= 0:
         return Response(
-            {"error": "Product is out of stock"},
+            {"error": "product is out of stock"},
             status=status.HTTP_400_BAD_REQUEST
         )
 
@@ -354,7 +660,7 @@ def add_to_Cart(request):
         item.save()
 
     return Response({
-        "message": "Product added to cart",
+        "message": "product added to cart",
         "cart": CartSerializer(cart).data
     })
 
@@ -411,4 +717,4 @@ def remove_from_Cart(request):
             status=status.HTTP_404_NOT_FOUND
         )
 
-    return Response({"message": "Product removed from cart"})
+    return Response({"message": "product removed from cart"})

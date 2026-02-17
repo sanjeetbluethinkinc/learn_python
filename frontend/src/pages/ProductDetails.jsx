@@ -2,11 +2,11 @@ import { useParams, Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useCart } from "../../context/CartContext";
 
-function ProductDetails() {
+function productDetails() {
   const { id } = useParams();
   const BASEURL = import.meta.env.VITE_DJANGO_BASE_URL.replace(/\/$/, "");
 
-  const [product, setProduct] = useState(null);
+  const [product, setproduct] = useState(null);
   const [images, setImages] = useState([]);
   const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -21,13 +21,13 @@ function ProductDetails() {
   useEffect(() => {
     if (!id) return;
 
-    const fetchProduct = async () => {
+    const fetchproduct = async () => {
       try {
         const response = await fetch(`${BASEURL}/api/products/${id}/`);
-        if (!response.ok) throw new Error("Product not found");
+        if (!response.ok) throw new Error("product not found");
 
         const data = await response.json();
-        setProduct(data);
+        setproduct(data);
 
         // Build image list
         const imgs = [];
@@ -47,7 +47,7 @@ function ProductDetails() {
       }
     };
 
-    fetchProduct();
+    fetchproduct();
   }, [id, BASEURL]);
 
   if (loading) {
@@ -146,12 +146,10 @@ function ProductDetails() {
 
           {/* SKU + STOCK */}
           <div className="mb-6">
-            <p className="text-sm text-gray-500">
-              SKU:{" "}
-              <span className="font-medium">
-                {product.sku || "N/A"}
-              </span>
-            </p>
+            
+             <p className="text-xs text-gray-500 mt-1">
+            SKU: <span className="font-medium">{product.sku}</span>
+          </p>
 
             {outOfStock ? (
               <span className="inline-block mt-2 text-sm font-semibold text-red-600">
@@ -217,4 +215,4 @@ function ProductDetails() {
   );
 }
 
-export default ProductDetails;
+export default productDetails;

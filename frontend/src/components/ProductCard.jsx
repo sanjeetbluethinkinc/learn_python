@@ -3,7 +3,7 @@ import { useState } from "react";
 import Swal from "sweetalert2";
 import { useCart } from "../context/CartContext";
 
-function ProductCard({ product }) {
+function productCard({ product }) {
   const { addToCart, cartItems } = useCart();
   const [isAdding, setIsAdding] = useState(false);
   const BASEURL = import.meta.env.VITE_DJANGO_BASE_URL;
@@ -20,7 +20,7 @@ function ProductCard({ product }) {
   // STOCK LOGIC
   const outOfStock = Number(product.quantity) <= 0;
 
-  // CHECK IF PRODUCT ALREADY IN CART
+  // CHECK IF product ALREADY IN CART
   const alreadyInCart = cartItems.some(
     (item) => item.id === product.id
   );
@@ -78,7 +78,7 @@ function ProductCard({ product }) {
         </span>
       )}
 
-      {/* PRODUCT LINK */}
+      {/* product LINK */}
       <Link to={`/products/${product.id}`} className="block">
         <img
           src={imageUrl}
@@ -137,4 +137,4 @@ function ProductCard({ product }) {
   );
 }
 
-export default ProductCard;
+export default productCard;

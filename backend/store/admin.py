@@ -1,24 +1,44 @@
 from django.contrib import admin
+from .models import ProductReview, ProductQuestion
 from .models import (
+    product,
     Review,
     HomeSection,
     category,
-    product,
-    ProductImage,
+    productImage,
     Banner,
     UserProfile,
     Cart,
     CartItem,
     Order,
     OrderItem,
+    OrderAddress,
+    Payment,
     AboutSection,
+    ContactInfo,
+    CompanyPolicy,
+    ContactSubmission,
 )
 
-from .models import ContactInfo, CompanyPolicy, ContactSubmission
+# ==========================
+# PAYMENT ADMIN
+# ==========================
+@admin.register(Payment)
+class PaymentAdmin(admin.ModelAdmin):
+    list_display = (
+        "id",
+        "order",
+        "payment_method",
+        "amount",
+        "status",
+        "created_at",
+    )
+    list_filter = ("payment_method", "status")
+    search_fields = ("payment_id", "order__id")
 
 
 # ==========================
-# CONTACT INFO ADMIN
+# CONTACT INFO
 # ==========================
 @admin.register(ContactInfo)
 class ContactInfoAdmin(admin.ModelAdmin):
@@ -26,7 +46,7 @@ class ContactInfoAdmin(admin.ModelAdmin):
 
 
 # ==========================
-# COMPANY POLICIES ADMIN
+# COMPANY POLICIES
 # ==========================
 @admin.register(CompanyPolicy)
 class CompanyPolicyAdmin(admin.ModelAdmin):
@@ -35,7 +55,7 @@ class CompanyPolicyAdmin(admin.ModelAdmin):
 
 
 # ==========================
-# CONTACT FORM SUBMISSIONS ADMIN
+# CONTACT SUBMISSIONS
 # ==========================
 @admin.register(ContactSubmission)
 class ContactSubmissionAdmin(admin.ModelAdmin):
@@ -44,9 +64,9 @@ class ContactSubmissionAdmin(admin.ModelAdmin):
     readonly_fields = ("submitted_at",)
 
 
-# =======================
-# REVIEW ADMIN (APPROVE / REJECT)
-# =======================
+# ==========================
+# REVIEWS
+# ==========================
 @admin.register(Review)
 class ReviewAdmin(admin.ModelAdmin):
     list_display = ("name", "rating", "short_review", "is_approved", "created_at")
@@ -58,42 +78,30 @@ class ReviewAdmin(admin.ModelAdmin):
     def short_review(self, obj):
         return obj.review[:40] + "..." if len(obj.review) > 40 else obj.review
 
-    short_review.short_description = "Review"
 
-    def approve_reviews(self, request, queryset):
-        queryset.update(is_approved=True)
-
-    approve_reviews.short_description = "Approve selected reviews"
-
-    def reject_reviews(self, request, queryset):
-        queryset.update(is_approved=False)
-
-    reject_reviews.short_description = "Reject selected reviews"
-
-
-# =======================
+# ==========================
 # HOME SECTION
-# =======================
+# ==========================
 @admin.register(HomeSection)
 class HomeSectionAdmin(admin.ModelAdmin):
     list_display = ("title", "subtitle", "order")
     ordering = ("order",)
 
 
-# =======================
+# ==========================
 # CATEGORY
-# =======================
+# ==========================
 @admin.register(category)
 class CategoryAdmin(admin.ModelAdmin):
     list_display = ("name", "slug")
     prepopulated_fields = {"slug": ("name",)}
 
 
-# =======================
+# ==========================
 # PRODUCT + IMAGES
-# =======================
+# ==========================
 class ProductImageInline(admin.TabularInline):
-    model = ProductImage
+    model = productImage
     extra = 1
 
 
@@ -101,24 +109,40 @@ class ProductImageInline(admin.TabularInline):
 class ProductAdmin(admin.ModelAdmin):
     list_display = (
         "name",
-        "sku",          # ✅ NEW
+        "sku",
         "category",
         "price",
-        "quantity",     # ✅ NEW
-        "is_in_stock",  # ✅ NEW
+        "quantity",
+        "is_in_stock",
         "created_at",
     )
 
-    list_editable = ("price", "quantity")   # ✅ quick edit
+    list_editable = ("price", "quantity")
     list_filter = ("category", "quantity")
     search_fields = ("name", "sku")
 
+    # ✅ ADMIN FORM LAYOUT (VERY IMPORTANT)
+    fieldsets = (
+        ("Basic Information", {
+            "fields": (
+                "category",
+                "name",
+                "sku",
+                "price",
+                "quantity",
+                "image",
+            )
+        }),
+        ("Product Description (Frontend Tab)", {
+            "fields": ("description",),   # ✅ THIS POWERS YOUR TAB
+        }),
+    )
+
     inlines = [ProductImageInline]
 
-
-# =======================
+# ==========================
 # BANNER
-# =======================
+# ==========================
 @admin.register(Banner)
 class BannerAdmin(admin.ModelAdmin):
     list_display = ("title", "is_active", "order")
@@ -126,17 +150,17 @@ class BannerAdmin(admin.ModelAdmin):
     ordering = ("order",)
 
 
-# =======================
+# ==========================
 # USER PROFILE
-# =======================
+# ==========================
 @admin.register(UserProfile)
 class UserProfileAdmin(admin.ModelAdmin):
     list_display = ("user", "phone_number")
 
 
-# =======================
+# ==========================
 # CART
-# =======================
+# ==========================
 class CartItemInline(admin.TabularInline):
     model = CartItem
     extra = 0
@@ -148,24 +172,84 @@ class CartAdmin(admin.ModelAdmin):
     inlines = [CartItemInline]
 
 
-# =======================
-# ORDER
-# =======================
+# ==========================
+# ORDER SECTION
+# ==========================
 class OrderItemInline(admin.TabularInline):
     model = OrderItem
     extra = 0
+    readonly_fields = ("product", "quantity", "price")
+    can_delete = False
+
+
+class OrderAddressInline(admin.StackedInline):
+    model = OrderAddress
+    extra = 0
+    can_delete = False
+    readonly_fields = (
+        "full_name",
+        "phone",
+        "street",
+        "city",
+        "state",
+        "zip_code",
+    )
+    verbose_name_plural = "Delivery Address"
+
+
+class PaymentInline(admin.StackedInline):
+    model = Payment
+    extra = 0
+    can_delete = False
+    readonly_fields = (
+        "payment_method",
+        "payment_id",
+        "amount",
+        "status",
+        "created_at",
+    )
+    verbose_name_plural = "Payment Details"
 
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ("id", "user", "total_amount", "created_at")
-    inlines = [OrderItemInline]
+    list_display = (
+        "id",
+        "user",
+        "total_amount",
+        "payment_status",
+        "is_paid",
+        "created_at",
+    )
+    list_filter = ("payment_status", "is_paid", "created_at")
+    search_fields = ("id", "user__username")
+    ordering = ("-created_at",)
 
-
-# =======================
+    inlines = [
+        OrderAddressInline,
+        OrderItemInline,
+        PaymentInline,
+    ]
+    
+# ==========================
 # ABOUT SECTION
-# =======================
+# ==========================
 @admin.register(AboutSection)
 class AboutSectionAdmin(admin.ModelAdmin):
     list_display = ("title", "is_active")
     list_filter = ("is_active",)
+
+@admin.register(ProductReview)
+class ProductReviewAdmin(admin.ModelAdmin):
+    list_display = ("product", "name", "rating", "is_approved", "created_at")
+    list_filter = ("is_approved", "rating")
+    actions = ["approve_reviews"]
+
+    def approve_reviews(self, request, queryset):
+        queryset.update(is_approved=True)
+
+@admin.register(ProductQuestion)
+class ProductQuestionAdmin(admin.ModelAdmin):
+    list_display = ("product", "name", "is_answered", "created_at")
+    list_filter = ("is_answered",)
+    fields = ("product", "name", "question", "answer", "is_answered")

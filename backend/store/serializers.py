@@ -3,17 +3,31 @@ from rest_framework import serializers
 from .models import HomeSection, AboutSection
 from .models import ContactInfo, CompanyPolicy, ContactSubmission
 from .models import Review
-from .models import OrderAddress
+from .models import OrderAddress, ProductQuestion, ProductReview
 from .models import (
     category,
     product,
-    ProductImage,
+    productImage,
     Banner,
     Cart,
     CartItem,
     Order,
     OrderItem,
+    Payment,
 )
+class ProductReviewSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProductReview
+        fields = "__all__"
+        read_only_fields = ("is_approved", "created_at")
+
+
+class ProductQuestionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ProductQuestion
+        fields = "__all__"
+        read_only_fields = ("answer", "is_answered", "created_at")
+
 
 # ---------------- ORDER ADDRESS ----------------
 class OrderAddressSerializer(serializers.ModelSerializer):
@@ -28,6 +42,10 @@ class OrderAddressSerializer(serializers.ModelSerializer):
             "zip_code",
         ]
 
+class PaymentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Payment
+        fields = "__all__"
 
 # ---------------- CONTACT ----------------
 class ContactInfoSerializer(serializers.ModelSerializer):
@@ -74,27 +92,31 @@ class HomeSectionSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
-# ---------------- CATEGORY ----------------
+# ---------------- category ----------------
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = category
         fields = "__all__"
 
 
-# ---------------- PRODUCT IMAGE ----------------
-class ProductImageSerializer(serializers.ModelSerializer):
-    image = serializers.ImageField(use_url=True)
+# ---------------- product IMAGE ----------------
+class productImageSerializer(serializers.ModelSerializer):
+    image = serializers.ImageField(
+    use_url=True,
+    required=False,
+    allow_null=True
+)
 
     class Meta:
-        model = ProductImage
+        model = productImage
         fields = ["id", "image"]
 
 
-# ---------------- PRODUCT ----------------
+# ---------------- product ----------------
 class ProductSerializer(serializers.ModelSerializer):
     category = CategorySerializer(read_only=True)
-    images = ProductImageSerializer(many=True, read_only=True)
-    image = serializers.ImageField(use_url=True)
+    images = productImageSerializer(many=True, read_only=True)
+    image = serializers.ImageField(use_url=True, required=False, allow_null=True)
     in_stock = serializers.SerializerMethodField()
 
     class Meta:
@@ -221,40 +243,46 @@ class OrderCreateSerializer(serializers.ModelSerializer):
             "items",
         ]
 
-    def create(self, validated_data):
-        request = self.context["request"]
-        user = request.user
+def create(self, validated_data):
+    request = self.context["request"]
+    user = request.user
 
-        address_data = validated_data.pop("address")
-        items_data = validated_data.pop("items")
+    address_data = validated_data.pop("address")
+    items_data = validated_data.pop("items")
 
-        address = OrderAddress.objects.create(**address_data)
+    # 1️⃣ Create Order FIRST
+    order = Order.objects.create(
+        user=user,
+        **validated_data
+    )
 
-        order = Order.objects.create(
-            user=user,
-            address=address,
-            **validated_data
-        )
+    # 2️⃣ Attach address to order
+    OrderAddress.objects.create(
+        order=order,
+        **address_data
+    )
 
-        for item in items_data:
-            product_obj = item["product"]
+    # 3️⃣ Create order items
+    for item in items_data:
+        product_obj = item["product"]
 
-            if product_obj.quantity < item["quantity"]:
-                raise serializers.ValidationError(
-                    f"Not enough stock for {product_obj.name}"
-                )
-
-            OrderItem.objects.create(
-                order=order,
-                product=product_obj,
-                quantity=item["quantity"],
-                price=item["price"],
+        if product_obj.quantity < item["quantity"]:
+            raise serializers.ValidationError(
+                f"Not enough stock for {product_obj.name}"
             )
 
-            product_obj.quantity -= item["quantity"]
-            product_obj.save()
+        OrderItem.objects.create(
+            order=order,
+            product=product_obj,
+            quantity=item["quantity"],
+            price=item["price"],
+        )
 
-        return order
+        product_obj.quantity -= item["quantity"]
+        product_obj.save()
+
+    return order
+
 
 
 # ---------------- ORDER READ ----------------

@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import ProductCard from "../ProductCard.jsx";
+import productCard from "../productCard.jsx";
 
-function ProductList() {
-  const [products, setProducts] = useState([]);
+function productList() {
+  const [products, setproducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -11,7 +11,7 @@ function ProductList() {
   useEffect(() => {
     let isMounted = true;
 
-    const fetchProducts = async () => {
+    const fetchproducts = async () => {
       try {
         const response = await fetch(`${BASEURL}/api/products/`);
 
@@ -22,7 +22,7 @@ function ProductList() {
         const data = await response.json();
 
         if (isMounted) {
-          setProducts(data);
+          setproducts(data);
           setLoading(false);
         }
       } catch (err) {
@@ -33,7 +33,7 @@ function ProductList() {
       }
     };
 
-    fetchProducts();
+    fetchproducts();
 
     return () => {
       isMounted = false;
@@ -65,13 +65,13 @@ function ProductList() {
     <div className="min-h-screen bg-gray-100 p-4">
       <div className="max-w-6xl mx-auto">
         <h1 className="text-2xl text-center p-4 shadow-md font-bold mb-6">
-          Product List
+          product List
         </h1>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {products.length > 0 ? (
             products.map((product) => (
-              <ProductCard key={product.id} product={product} />
+              <productCard key={product.id} product={product} />
             ))
           ) : (
             <p className="col-span-full text-center text-gray-500">
@@ -84,4 +84,4 @@ function ProductList() {
   );
 }
 
-export default ProductList;
+export default productList;

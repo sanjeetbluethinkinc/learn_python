@@ -100,7 +100,7 @@ class HomeSection(models.Model):
 
 
 # ==========================
-# CATEGORY
+# category
 # ==========================
 class category(models.Model):
     name = models.CharField(max_length=100)
@@ -111,7 +111,7 @@ class category(models.Model):
 
 
 # ==========================
-# PRODUCT
+# product
 # ==========================
 class product(models.Model):
     category = models.ForeignKey(
@@ -121,33 +121,19 @@ class product(models.Model):
     )
 
     name = models.CharField(max_length=200)
-
-    sku = models.CharField(
-        max_length=100,
-        null=True,
-        blank=True
-    )
-
+    sku = models.CharField(max_length=100, null=True, blank=True)
     description = models.TextField(blank=True)
-
     price = models.DecimalField(max_digits=10, decimal_places=2)
-
-    image = models.ImageField(
-        upload_to="products/main/",
-        blank=True,
-        null=True
-    )
-
+    image = models.ImageField(upload_to="products/main/", blank=True, null=True)
     quantity = models.PositiveIntegerField(default=0)
-
     created_at = models.DateTimeField(auto_now_add=True)
 
     def save(self, *args, **kwargs):
-        # ✅ SAFE, UNIQUE, MIGRATION-PROOF SKU
         if not self.sku:
             self.sku = f"SKU-{uuid.uuid4().hex[:10].upper()}"
         super().save(*args, **kwargs)
 
+    @property
     def is_in_stock(self):
         return self.quantity > 0
 
@@ -156,9 +142,9 @@ class product(models.Model):
 
 
 # ==========================
-# PRODUCT GALLERY
+# product GALLERY
 # ==========================
-class ProductImage(models.Model):
+class productImage(models.Model):
     product = models.ForeignKey(
         product,
         related_name="images",
@@ -191,7 +177,7 @@ class Banner(models.Model):
     )
 
     product = models.ForeignKey(
-        "product",
+        product,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -276,15 +262,41 @@ class Order(models.Model):
         null=True,
         blank=True
     )
-    subtotal = models.DecimalField(max_digits=10, decimal_places=2)
-    shipping_fee = models.DecimalField(max_digits=10, decimal_places=2)
-    total_amount = models.DecimalField(max_digits=10, decimal_places=2)
+
+    subtotal = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    shipping_fee = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    total_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+
+    # 📦 ORDER STATUS (delivery lifecycle)
+    status = models.CharField(
+        max_length=20,
+        choices=[
+            ("PENDING", "Pending"),
+            ("CONFIRMED", "Confirmed"),
+            ("SHIPPED", "Shipped"),
+            ("DELIVERED", "Delivered"),
+            ("CANCELLED", "Cancelled"),
+        ],
+        default="PENDING",
+    )
+
+    # 💰 PAYMENT STATE
+    is_paid = models.BooleanField(default=False)
+    payment_status = models.CharField(
+        max_length=20,
+        choices=[
+            ("PENDING", "Pending"),
+            ("SUCCESS", "Success"),
+            ("FAILED", "Failed"),
+        ],
+        default="PENDING",
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f"Order {self.id}"
-
-
+    
 # ==========================
 # ORDER ITEM
 # ==========================
@@ -326,3 +338,97 @@ class AboutSection(models.Model):
 
     def __str__(self):
         return self.title
+# ==========================
+# PRODUCT REVIEWS
+# ==========================
+class ProductReview(models.Model):
+    product = models.ForeignKey(
+        product,
+        related_name="reviews",
+        on_delete=models.CASCADE
+    )
+    name = models.CharField(max_length=100)
+    rating = models.IntegerField(choices=[(i, i) for i in range(1, 6)])
+    review = models.TextField()
+    is_approved = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.product.name} - {self.rating}★"
+# ==========================
+# PRODUCT Q&A (DISCUSSION / FAQ)
+# ==========================
+class ProductQuestion(models.Model):
+    product = models.ForeignKey(
+        product,
+        related_name="questions",
+        on_delete=models.CASCADE
+    )
+    name = models.CharField(max_length=100)
+    question = models.TextField()
+    answer = models.TextField(blank=True)
+    is_answered = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Q: {self.product.name}"
+
+
+
+
+# payment
+class Payment(models.Model):
+    PAYMENT_METHOD_CHOICES = (
+        ("COD", "Cash On Delivery"),
+        ("RAZORPAY", "Razorpay"),
+        ("STRIPE", "Stripe"),
+    )
+
+    PAYMENT_STATUS_CHOICES = (
+        ("PENDING", "Pending"),
+        ("SUCCESS", "Success"),
+        ("FAILED", "Failed"),
+    )
+
+    user = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="payments",
+    )
+
+    order = models.OneToOneField(
+        Order,
+        on_delete=models.CASCADE,
+        related_name="payment",
+    )
+
+    payment_method = models.CharField(
+        max_length=20,
+        choices=PAYMENT_METHOD_CHOICES,
+    )
+    
+    payment_id = models.CharField(
+        max_length=200,
+        blank=True,
+        null=True,
+        help_text="Gateway payment/order ID (Razorpay / Stripe)",
+    )
+
+    amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+    )
+
+    status = models.CharField(
+        max_length=20,
+        choices=PAYMENT_STATUS_CHOICES,
+        default="PENDING",
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Order {self.order_id} | {self.payment_method} | {self.status}"
