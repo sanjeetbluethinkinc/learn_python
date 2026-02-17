@@ -34,8 +34,7 @@ from .serializers import (
     ContactInfoSerializer,
     CompanyPolicySerializer,
     ContactSubmissionSerializer,
-    ProductSerializer,      
-     ProductSerializer,    
+    ProductSerializer,       
     CategorySerializer,
     CartSerializer,
     CartItemSerializer,
@@ -285,13 +284,11 @@ def my_orders(request):
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def create_order(request):
-    
     user = request.user
     data = request.data
 
     try:
         with transaction.atomic():
-
             items = data.get("items", [])
             address = data.get("address")
             payment_method = data.get("payment_method", "COD")
@@ -374,39 +371,6 @@ def create_order(request):
 
     except Exception as e:
         return Response({"error": str(e)}, status=400)
-
-
-
-    # 3️⃣ CREATE ORDER ITEMS + STOCK CHECK
-    for item in cart.items.all():
-        product = item.product
-
-        if product.quantity < item.quantity:
-            return Response(
-                {"error": f"{product.name} is out of stock"},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
-        OrderItem.objects.create(
-            order=order,
-            product=product,
-            quantity=item.quantity,
-            price=product.price,
-        )
-
-        product.quantity -= item.quantity
-        product.save()
-
-    # 4️⃣ CLEAR CART
-    cart.items.all().delete()
-
-    return Response(
-        {
-            "message": "Order placed successfully",
-            "order_id": order.id
-        },
-        status=status.HTTP_201_CREATED
-    )
 
 # =========================
 # AUTH
@@ -588,7 +552,22 @@ def get_product(request, pk):
     single_product = get_object_or_404(product, id=pk)
     serializer = ProductSerializer(single_product) 
     return Response(serializer.data)
+# =========================
+# HOME PRODUCT SECTIONS
+# =========================
 
+@api_view(["GET"])
+def new_arrival_products(request):
+    products = product.objects.filter(is_new_arrival=True).order_by("-created_at")
+    serializer = ProductSerializer(products, many=True)
+    return Response(serializer.data)
+
+
+@api_view(["GET"])
+def best_seller_products(request):
+    products = product.objects.filter(is_best_seller=True)
+    serializer = ProductSerializer(products, many=True)
+    return Response(serializer.data)
 
 # =========================
 # CATEGORIES

@@ -1,10 +1,11 @@
 import { Routes, Route } from "react-router-dom";
-
 import NavBar from "./components/NavBar";
 import Footer from "./components/Footer";
 import BannerSlider from "./components/BannerSlider";
-
 // Pages
+import BestSellerPage from "./components/pages/BestSellerPage";
+import NewArrivalSection from "./components/sections/NewArrivalSection";
+import BestSellerSection from "./components/sections/BestSellerSection";
 import ProductList from "./components/pages/ProductList";
 import ProductDetails from "./components/pages/ProductDetails";
 import CartPage from "./components/pages/CartPage";
@@ -15,6 +16,8 @@ import ReviewsLayout from "./components/reviews/ReviewsLayout";
 import ContactUs from "./pages/ContactUs";
 import AllProducts from "./components/pages/AllProducts";
 import CategoriesPage from "./components/pages/CategoriesPage";
+import NewArrivalPage from "./components/pages/NewArrivalPage";
+
 // Category
 import CategoryProducts from "./components/CategoryProducts";
 import MyOrders from "./components/pages/MyOrders";
@@ -30,6 +33,7 @@ function App() {
 
       <Routes>
         {/* ================= HOME ================= */}
+
         <Route
           path="/"
           element={
@@ -37,10 +41,15 @@ function App() {
               <BannerSlider />
               <ProductList />
               <HomeSection />
+              <NewArrivalSection />
               <ReviewsLayout />
+               <BestSellerSection />
             </>
           }
         />
+        <Route path="/best-sellers" element={<BestSellerPage />} />
+        <Route path="/new-arrivals" element={<NewArrivalPage />} />
+
 
         {/* ================= PUBLIC ROUTES ================= */}
         <Route path="/login" element={<Login />} />

@@ -44,7 +44,7 @@ function CheckoutPage() {
 
   /* ---------------- Place Order ---------------- */
   const handlePlaceOrder = async () => {
-    if (cartItems.length === 0) {
+    if (!cartItems.length) {
       Swal.fire("Empty Cart", "Your cart is empty", "warning");
       return;
     }
@@ -56,8 +56,7 @@ function CheckoutPage() {
       }
     }
 
-    const access = localStorage.getItem("access");
-    if (!access) {
+    if (!localStorage.getItem("access")) {
       Swal.fire("Login Required", "Please login first", "info");
       navigate("/login");
       return;
@@ -67,7 +66,7 @@ function CheckoutPage() {
       subtotal,
       shipping_fee,
       total_amount,
-      payment_method: paymentMethod === "COD" ? "COD" : "ONLINE",
+      payment_method: paymentMethod,
       address: {
         full_name: address.fullName,
         phone: address.phone,
@@ -80,24 +79,28 @@ function CheckoutPage() {
         product:
           typeof item.product === "object"
             ? item.product.id
-            : item.product || item.product_id,
+            : item.product,
         quantity: Number(item.quantity),
         price: Number(item.price),
-      }))
+      })),
     };
 
     try {
       setLoading(true);
 
-      /* 1️⃣ CREATE ORDER */
+      /* ✅ CREATE ORDER */
       const orderRes = await axiosInstance.post(
         "/api/orders/create/",
         payload
       );
 
+      if (!orderRes.data || !orderRes.data.order_id) {
+        throw new Error("Order creation failed");
+      }
+
       const orderId = orderRes.data.order_id;
 
-      /* 2️⃣ COD */
+      /* ✅ COD FLOW */
       if (paymentMethod === "COD") {
         Swal.fire("Success", "Order placed successfully", "success");
         clearCart();
@@ -105,7 +108,7 @@ function CheckoutPage() {
         return;
       }
 
-      /* 3️⃣ ONLINE PAYMENT */
+      /* ✅ ONLINE PAYMENT */
       const razorpayLoaded = await loadRazorpay();
       if (!razorpayLoaded) {
         Swal.fire("Error", "Razorpay SDK failed to load", "error");
@@ -117,13 +120,11 @@ function CheckoutPage() {
         { order_id: orderId }
       );
 
-      const paymentData = paymentRes.data;
-
       const options = {
-        key: paymentData.razorpay_key,
-        amount: paymentData.amount,
+        key: paymentRes.data.razorpay_key,
+        amount: paymentRes.data.amount,
         currency: "INR",
-        order_id: paymentData.razorpay_order_id,
+        order_id: paymentRes.data.razorpay_order_id,
         name: "FoodMarket",
         description: "Order Payment",
 
@@ -153,11 +154,14 @@ function CheckoutPage() {
 
       new window.Razorpay(options).open();
     } catch (err) {
+      console.error("ORDER ERROR:", err.response?.data || err.message);
+
       Swal.fire(
         "Error",
-        err.response?.data?.detail ||
         err.response?.data?.error ||
-        "Order failed",
+          err.response?.data?.detail ||
+          err.message ||
+          "Order failed",
         "error"
       );
     } finally {
@@ -231,9 +235,10 @@ function CheckoutPage() {
             onClick={handlePlaceOrder}
             disabled={loading}
             className={`mt-6 w-full py-3 rounded-xl text-lg font-semibold text-white
-              ${loading
-                ? "bg-gray-400"
-                : "bg-orange-500 hover:bg-orange-600"
+              ${
+                loading
+                  ? "bg-gray-400"
+                  : "bg-orange-500 hover:bg-orange-600"
               }`}
           >
             {loading ? "Processing..." : "Place Order"}

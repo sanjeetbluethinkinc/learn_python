@@ -44,7 +44,7 @@ function HomeSection() {
 
                         {section.button_link && (
                             <a
-                                href={section.button_link}
+                                href="/about"
                                 className="inline-block bg-orange-500 text-white
                            px-6 py-3 rounded-lg font-semibold
                            hover:bg-orange-600 transition"

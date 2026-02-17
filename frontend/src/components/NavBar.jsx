@@ -18,7 +18,6 @@ function NavBar() {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
 
-  // Hide profile on auth pages
   const hideAuthUI =
     location.pathname === "/login" ||
     location.pathname === "/register";
@@ -28,7 +27,11 @@ function NavBar() {
     0
   );
 
-  // Fetch categories
+  // ACTIVE CHECK
+  const isActive = (path) => location.pathname === path;
+  const isCategoryActive = (slug) =>
+    location.pathname === `/products/category/${slug}`;
+
   useEffect(() => {
     fetch(`${BASEURL}/api/categories/`)
       .then((res) => res.json())
@@ -36,7 +39,6 @@ function NavBar() {
       .catch(console.error);
   }, []);
 
-  // Stop logout loader after navigation
   useEffect(() => {
     if (loggingOut) setLoggingOut(false);
   }, [location.pathname]);
@@ -44,7 +46,6 @@ function NavBar() {
   const visibleCategories = categories.slice(0, 5);
   const moreCategories = categories.slice(5);
 
-  // Logout handler
   const handleLogout = () => {
     setLoggingOut(true);
     setIsProfileOpen(false);
@@ -57,7 +58,6 @@ function NavBar() {
 
   return (
     <>
-      {/* LOGOUT LOADER */}
       {loggingOut && (
         <div className="fixed inset-0 z-[999] bg-black/70 flex items-center justify-center">
           <div className="bg-gray-900 px-6 py-4 rounded-xl flex items-center gap-3 text-white">
@@ -73,7 +73,9 @@ function NavBar() {
           {/* LOGO */}
           <Link
             to="/"
-            className="text-2xl font-extrabold text-orange-500"
+            className={`text-2xl font-extrabold transition ${
+              isActive("/") ? "text-orange-400" : "text-orange-500"
+            }`}
           >
             Food<span className="text-white">Market</span>
           </Link>
@@ -85,11 +87,20 @@ function NavBar() {
               <Link
                 key={cat.id}
                 to={`/products/category/${cat.slug}`}
-                className="relative inline-block py-2 transition-colors duration-300 hover:text-orange-400
-                 after:absolute after:left-0 after:bottom-0
-                 after:h-[2px] after:w-0 after:bg-orange-400
-                 after:transition-all after:duration-300 after:ease-out
-                 hover:after:w-full"
+                className={`relative inline-block py-2 transition-colors duration-300
+                  ${
+                    isCategoryActive(cat.slug)
+                      ? "text-orange-400"
+                      : "hover:text-orange-400"
+                  }
+                  after:absolute after:left-0 after:bottom-0
+                  after:h-[2px] after:bg-orange-400
+                  after:transition-all after:duration-300
+                  ${
+                    isCategoryActive(cat.slug)
+                      ? "after:w-full"
+                      : "after:w-0 hover:after:w-full"
+                  }`}
               >
                 {cat.name}
               </Link>
@@ -99,11 +110,7 @@ function NavBar() {
               <div className="relative">
                 <button
                   onClick={() => setIsMoreOpen(!isMoreOpen)}
-                  className="relative inline-block py-2 transition-colors duration-300 hover:text-orange-400
-                   after:absolute after:left-0 after:bottom-0
-                   after:h-[2px] after:w-0 after:bg-orange-400
-                   after:transition-all after:duration-300
-                   hover:after:w-full"
+                  className="relative inline-block py-2 hover:text-orange-400"
                 >
                   More ▾
                 </button>
@@ -117,19 +124,16 @@ function NavBar() {
                         key={cat.id}
                         to={`/products/category/${cat.slug}`}
                         onClick={() => setIsMoreOpen(false)}
-                        className="block px-4 py-3 text-sm font-medium tracking-wide
-                         transition-all duration-300
-                         hover:bg-gray-800 hover:text-orange-400
-                         relative
-                         after:absolute after:left-4 after:bottom-2
-                         after:h-[2px] after:w-0 after:bg-orange-400
-                         after:transition-all after:duration-300
-                         hover:after:w-6"
+                        className={`block px-4 py-3 text-sm font-medium tracking-wide
+                          ${
+                            isCategoryActive(cat.slug)
+                              ? "text-orange-400 bg-gray-800"
+                              : "hover:bg-gray-800 hover:text-orange-400"
+                          }`}
                       >
                         {cat.name}
                       </Link>
                     ))}
-
                   </div>
                 )}
               </div>
@@ -137,32 +141,38 @@ function NavBar() {
 
             <Link
               to="/about"
-              className="relative inline-block py-2 transition-colors duration-300 hover:text-orange-400
-               after:absolute after:left-0 after:bottom-0
-               after:h-[2px] after:w-0 after:bg-orange-400
-               after:transition-all after:duration-300
-               hover:after:w-full"
+              className={`relative inline-block py-2 transition-colors duration-300
+                ${
+                  isActive("/about")
+                    ? "text-orange-400 after:w-full"
+                    : "hover:text-orange-400 after:w-0 hover:after:w-full"
+                }
+                after:absolute after:left-0 after:bottom-0
+                after:h-[2px] after:bg-orange-400
+                after:transition-all after:duration-300`}
             >
               About Us
             </Link>
 
             <Link
               to="/contact"
-              className="relative inline-block py-2 transition-colors duration-300 hover:text-orange-400
-               after:absolute after:left-0 after:bottom-0
-               after:h-[2px] after:w-0 after:bg-orange-400
-               after:transition-all after:duration-300
-               hover:after:w-full"
+              className={`relative inline-block py-2 transition-colors duration-300
+                ${
+                  isActive("/contact")
+                    ? "text-orange-400 after:w-full"
+                    : "hover:text-orange-400 after:w-0 hover:after:w-full"
+                }
+                after:absolute after:left-0 after:bottom-0
+                after:h-[2px] after:bg-orange-400
+                after:transition-all after:duration-300`}
             >
               Contact Us
             </Link>
-
           </div>
 
           {/* RIGHT SIDE */}
           <div className="flex items-center gap-4">
 
-            {/* CART */}
             <Link to="/cart" className="relative">
               🛒
               {totalItems > 0 && (
@@ -172,7 +182,6 @@ function NavBar() {
               )}
             </Link>
 
-            {/* PROFILE */}
             {!hideAuthUI && (
               <div className="relative">
                 <button
@@ -210,7 +219,6 @@ function NavBar() {
               </div>
             )}
 
-            {/* MOBILE MENU BUTTON */}
             <button
               onClick={() => setIsMobileOpen(!isMobileOpen)}
               className="md:hidden text-2xl"
@@ -220,7 +228,6 @@ function NavBar() {
           </div>
         </div>
 
-        {/* MOBILE MENU */}
         {isMobileOpen && (
           <div className="md:hidden bg-gray-800 p-4 space-y-2">
             {categories.map((cat) => (
@@ -228,16 +235,35 @@ function NavBar() {
                 key={cat.id}
                 to={`/products/category/${cat.slug}`}
                 onClick={() => setIsMobileOpen(false)}
-                className="block hover:text-orange-400"
+                className={`block ${
+                  isCategoryActive(cat.slug)
+                    ? "text-orange-400"
+                    : "hover:text-orange-400"
+                }`}
               >
                 {cat.name}
               </Link>
             ))}
 
-            <Link to="/about" className="block hover:text-orange-400">
+            <Link
+              to="/about"
+              className={`block ${
+                isActive("/about")
+                  ? "text-orange-400"
+                  : "hover:text-orange-400"
+              }`}
+            >
               About Us
             </Link>
-            <Link to="/contact" className="block hover:text-orange-400">
+
+            <Link
+              to="/contact"
+              className={`block ${
+                isActive("/contact")
+                  ? "text-orange-400"
+                  : "hover:text-orange-400"
+              }`}
+            >
               Contact Us
             </Link>
           </div>

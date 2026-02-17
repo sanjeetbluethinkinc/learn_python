@@ -129,13 +129,17 @@ export default function ProductTabs({ product }) {
     <div className="bg-gray-100 rounded-xl shadow-sm p-6">
 
       {/* ================= TABS ================= */}
-      <div className="relative mb-8 border-b">
+      <div className="relative mb-8">
         <div className="flex gap-10">
           {["details", "reviews", "discussion"].map(t => (
             <button
               key={t}
               onClick={() => handleTabChange(t)}
-              className={`relative py-3 text-sm font-semibold transition-colors
+              className={`relative inline-block py-2 transition-colors duration-300 hover:text-orange-400
+               after:absolute after:left-0 after:bottom-0
+               after:h-[2px] after:w-0 after:bg-orange-400
+               after:transition-all after:duration-300
+               hover:after:w-full
                 ${
                   tab === t
                     ? "text-orange-600 "

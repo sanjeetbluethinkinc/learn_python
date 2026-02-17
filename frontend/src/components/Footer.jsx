@@ -47,7 +47,11 @@ function Footer() {
         <div>
           <h3 className="text-white font-semibold mb-3">Help</h3>
           <ul className="space-y-2 text-sm">
-            <li><Link to="/my-orders" className="hover:text-orange-400">My Orders</Link></li>
+            <li><Link to="/my-orders" className="relative inline-block py-2 transition-colors duration-300 hover:text-orange-400
+               after:absolute after:left-0 after:bottom-0
+               after:h-[2px] after:w-0 after:bg-orange-400
+               after:transition-all after:duration-300
+               hover:after:w-full">My Orders</Link></li>
             <li><Link to="/contact" className="relative inline-block py-2 transition-colors duration-300 hover:text-orange-400
                after:absolute after:left-0 after:bottom-0
                after:h-[2px] after:w-0 after:bg-orange-400

@@ -1,15 +1,20 @@
 python manage.py makemigrations
 python manage.py migrate
 python manage.py runserver
+source venv/bin/activate
 
 
 
+	
 
-I have worked on Appointment, Patient Health Educaiton, External Resources, Haram Medication, Primary Care Clinic, Vaccine Clinic Pop Ups, Dental Clinic, Dermatology Clinic, Mind Clinic, Podiatry Clinic, Diabetic Retinopathy Clinic, Women’s Health Care Clinic these pages that i have fixed css and i have created its html on wordpress admin dashboard 
 
+
+today i have worked on my learning project I have created some pages like new arrival sectio and its page and also i have created best seller section and page and both logics and applied changes in my backend and alos i have created the similar product and also product description and and rating section and ask question section and it is tab switching and also implemented in backend admin and it is working fine and other sections are rest so i'll do it tomorrow
 
 
  
+
+
 
 
 

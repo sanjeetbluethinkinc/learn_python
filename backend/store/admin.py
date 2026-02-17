@@ -113,15 +113,28 @@ class ProductAdmin(admin.ModelAdmin):
         "category",
         "price",
         "quantity",
+        "is_best_seller",
+        "is_new_arrival",
         "is_in_stock",
         "created_at",
     )
 
-    list_editable = ("price", "quantity")
-    list_filter = ("category", "quantity")
+    list_editable = (
+        "price",
+        "quantity",
+        "is_best_seller",
+        "is_new_arrival",
+    )
+
+    list_filter = (
+        "category",
+        "is_best_seller",
+        "is_new_arrival",
+        "quantity",
+    )
+
     search_fields = ("name", "sku")
 
-    # ✅ ADMIN FORM LAYOUT (VERY IMPORTANT)
     fieldsets = (
         ("Basic Information", {
             "fields": (
@@ -133,8 +146,14 @@ class ProductAdmin(admin.ModelAdmin):
                 "image",
             )
         }),
+        ("Product Flags (Homepage Sections)", {
+            "fields": (
+                "is_best_seller",
+                "is_new_arrival",
+            )
+        }),
         ("Product Description (Frontend Tab)", {
-            "fields": ("description",),   # ✅ THIS POWERS YOUR TAB
+            "fields": ("description",),
         }),
     )
 

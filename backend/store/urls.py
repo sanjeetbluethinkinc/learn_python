@@ -44,4 +44,6 @@ urlpatterns = [
     path("contact/submit/", views.submit_contact_form),
     path("reviews/submit/", views.submit_review),
     path("reviews/approved/", views.approved_reviews),
+     path("products/new-arrival/", views.new_arrival_products),
+    path("products/best-seller/", views.best_seller_products),
 ]
