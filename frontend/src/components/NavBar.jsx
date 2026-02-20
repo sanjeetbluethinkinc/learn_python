@@ -73,9 +73,8 @@ function NavBar() {
           {/* LOGO */}
           <Link
             to="/"
-            className={`text-2xl font-extrabold transition ${
-              isActive("/") ? "text-orange-400" : "text-orange-500"
-            }`}
+            className={`text-2xl font-extrabold transition ${isActive("/") ? "text-orange-400" : "text-orange-500"
+              }`}
           >
             Food<span className="text-white">Market</span>
           </Link>
@@ -88,18 +87,16 @@ function NavBar() {
                 key={cat.id}
                 to={`/products/category/${cat.slug}`}
                 className={`relative inline-block py-2 transition-colors duration-300
-                  ${
-                    isCategoryActive(cat.slug)
-                      ? "text-orange-400"
-                      : "hover:text-orange-400"
+                  ${isCategoryActive(cat.slug)
+                    ? "text-orange-400"
+                    : "hover:text-orange-400"
                   }
                   after:absolute after:left-0 after:bottom-0
                   after:h-[2px] after:bg-orange-400
                   after:transition-all after:duration-300
-                  ${
-                    isCategoryActive(cat.slug)
-                      ? "after:w-full"
-                      : "after:w-0 hover:after:w-full"
+                  ${isCategoryActive(cat.slug)
+                    ? "after:w-full"
+                    : "after:w-0 hover:after:w-full"
                   }`}
               >
                 {cat.name}
@@ -125,10 +122,9 @@ function NavBar() {
                         to={`/products/category/${cat.slug}`}
                         onClick={() => setIsMoreOpen(false)}
                         className={`block px-4 py-3 text-sm font-medium tracking-wide
-                          ${
-                            isCategoryActive(cat.slug)
-                              ? "text-orange-400 bg-gray-800"
-                              : "hover:bg-gray-800 hover:text-orange-400"
+                          ${isCategoryActive(cat.slug)
+                            ? "text-orange-400 bg-gray-800"
+                            : "hover:bg-gray-800 hover:text-orange-400"
                           }`}
                       >
                         {cat.name}
@@ -142,10 +138,9 @@ function NavBar() {
             <Link
               to="/about"
               className={`relative inline-block py-2 transition-colors duration-300
-                ${
-                  isActive("/about")
-                    ? "text-orange-400 after:w-full"
-                    : "hover:text-orange-400 after:w-0 hover:after:w-full"
+                ${isActive("/about")
+                  ? "text-orange-400 after:w-full"
+                  : "hover:text-orange-400 after:w-0 hover:after:w-full"
                 }
                 after:absolute after:left-0 after:bottom-0
                 after:h-[2px] after:bg-orange-400
@@ -157,10 +152,9 @@ function NavBar() {
             <Link
               to="/contact"
               className={`relative inline-block py-2 transition-colors duration-300
-                ${
-                  isActive("/contact")
-                    ? "text-orange-400 after:w-full"
-                    : "hover:text-orange-400 after:w-0 hover:after:w-full"
+                ${isActive("/contact")
+                  ? "text-orange-400 after:w-full"
+                  : "hover:text-orange-400 after:w-0 hover:after:w-full"
                 }
                 after:absolute after:left-0 after:bottom-0
                 after:h-[2px] after:bg-orange-400
@@ -207,6 +201,13 @@ function NavBar() {
                     >
                       My Orders
                     </Link>
+                    <Link
+                      to="/manage-address"
+                      onClick={() => setIsProfileOpen(false)}
+                      className="block px-4 py-2 text-sm hover:bg-gray-700"
+                    >
+                      Manage Address
+                    </Link>
 
                     <button
                       onClick={handleLogout}
@@ -235,11 +236,10 @@ function NavBar() {
                 key={cat.id}
                 to={`/products/category/${cat.slug}`}
                 onClick={() => setIsMobileOpen(false)}
-                className={`block ${
-                  isCategoryActive(cat.slug)
+                className={`block ${isCategoryActive(cat.slug)
                     ? "text-orange-400"
                     : "hover:text-orange-400"
-                }`}
+                  }`}
               >
                 {cat.name}
               </Link>
@@ -247,22 +247,20 @@ function NavBar() {
 
             <Link
               to="/about"
-              className={`block ${
-                isActive("/about")
+              className={`block ${isActive("/about")
                   ? "text-orange-400"
                   : "hover:text-orange-400"
-              }`}
+                }`}
             >
               About Us
             </Link>
 
             <Link
               to="/contact"
-              className={`block ${
-                isActive("/contact")
+              className={`block ${isActive("/contact")
                   ? "text-orange-400"
                   : "hover:text-orange-400"
-              }`}
+                }`}
             >
               Contact Us
             </Link>

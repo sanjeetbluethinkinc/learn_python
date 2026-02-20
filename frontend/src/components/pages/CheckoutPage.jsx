@@ -7,10 +7,18 @@ import axiosInstance from "../../api/axiosInstance";
 /* ---------------- Razorpay Loader ---------------- */
 const loadRazorpay = () =>
   new Promise((resolve) => {
+    if (window.Razorpay) {
+      resolve(true);
+      return;
+    }
+
     const script = document.createElement("script");
     script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.async = true;
+
     script.onload = () => resolve(true);
     script.onerror = () => resolve(false);
+
     document.body.appendChild(script);
   });
 
@@ -75,14 +83,11 @@ function CheckoutPage() {
         state: address.state,
         zip_code: address.zip,
       },
-      items: cartItems.map((item) => ({
-        product:
-          typeof item.product === "object"
-            ? item.product.id
-            : item.product,
-        quantity: Number(item.quantity),
-        price: Number(item.price),
-      })),
+     items: cartItems.map((item) => ({
+  product: item.id,          // ✅ FIX
+  quantity: Number(item.quantity),
+  price: Number(item.price),
+})),
     };
 
     try {
@@ -94,12 +99,20 @@ function CheckoutPage() {
         payload
       );
 
-      if (!orderRes.data || !orderRes.data.order_id) {
+      if (!orderRes.data?.order_id) {
         throw new Error("Order creation failed");
       }
 
       const orderId = orderRes.data.order_id;
 
+      await axiosInstance.post("/api/address/", {
+        full_name: address.fullName,
+        phone: address.phone,
+        street: address.street,
+        city: address.city,
+        state: address.state,
+        zip_code: address.zip,
+      });
       /* ✅ COD FLOW */
       if (paymentMethod === "COD") {
         Swal.fire("Success", "Order placed successfully", "success");
@@ -108,17 +121,20 @@ function CheckoutPage() {
         return;
       }
 
-      /* ✅ ONLINE PAYMENT */
+      /* ✅ ONLINE PAYMENT (RAZORPAY) */
       const razorpayLoaded = await loadRazorpay();
-      if (!razorpayLoaded) {
-        Swal.fire("Error", "Razorpay SDK failed to load", "error");
-        return;
+      if (!razorpayLoaded || !window.Razorpay) {
+        throw new Error("Razorpay SDK failed to load");
       }
 
       const paymentRes = await axiosInstance.post(
         "/api/payment/create/",
         { order_id: orderId }
       );
+
+      if (!paymentRes.data?.razorpay_order_id) {
+        throw new Error("Invalid payment response");
+      }
 
       const options = {
         key: paymentRes.data.razorpay_key,
@@ -128,7 +144,7 @@ function CheckoutPage() {
         name: "FoodMarket",
         description: "Order Payment",
 
-        handler: async function (response) {
+        handler: async (response) => {
           try {
             await axiosInstance.post("/api/payment/verify/", {
               order_id: orderId,
@@ -143,7 +159,8 @@ function CheckoutPage() {
           } catch (err) {
             Swal.fire(
               "Error",
-              err.response?.data?.error || "Payment verification failed",
+              err.response?.data?.error ||
+              "Payment verification failed",
               "error"
             );
           }
@@ -152,16 +169,17 @@ function CheckoutPage() {
         theme: { color: "#f97316" },
       };
 
-      new window.Razorpay(options).open();
+      const rzp = new window.Razorpay(options);
+      rzp.open();
+
     } catch (err) {
-      console.error("ORDER ERROR:", err.response?.data || err.message);
+      console.error("ORDER ERROR:", err);
 
       Swal.fire(
         "Error",
         err.response?.data?.error ||
-          err.response?.data?.detail ||
-          err.message ||
-          "Order failed",
+        err.message ||
+        "Order failed",
         "error"
       );
     } finally {
@@ -235,10 +253,9 @@ function CheckoutPage() {
             onClick={handlePlaceOrder}
             disabled={loading}
             className={`mt-6 w-full py-3 rounded-xl text-lg font-semibold text-white
-              ${
-                loading
-                  ? "bg-gray-400"
-                  : "bg-orange-500 hover:bg-orange-600"
+              ${loading
+                ? "bg-gray-400"
+                : "bg-orange-500 hover:bg-orange-600"
               }`}
           >
             {loading ? "Processing..." : "Place Order"}

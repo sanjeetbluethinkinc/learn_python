@@ -79,7 +79,7 @@ const BestSellerSection = () => {
       <div className="max-w-7xl mx-auto px-6 relative">
 
         {/* TITLE + BUTTON */}
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex justify-center items-center mb-8">
           <h2 className="text-3xl font-bold flex items-center gap-3">
             🔥 Best Sellers
           </h2>

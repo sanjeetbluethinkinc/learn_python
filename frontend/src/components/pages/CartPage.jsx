@@ -43,7 +43,7 @@ function CartPage() {
                   <img
                     src={imageUrl}
                     alt={item.name}
-                    className="w-28 h-28 object-cover rounded-xl border"
+                    className="w-28 h-28 object-cover rounded-xl"
                   />
 
                   {/* Info */}

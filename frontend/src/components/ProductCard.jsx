@@ -3,7 +3,7 @@ import { useState } from "react";
 import Swal from "sweetalert2";
 import { useCart } from "../context/CartContext";
 
-function productCard({ product }) {
+function ProductCard({ product, showNewBadge = false }) {
   const { addToCart, cartItems } = useCart();
   const [isAdding, setIsAdding] = useState(false);
   const BASEURL = import.meta.env.VITE_DJANGO_BASE_URL;
@@ -31,7 +31,6 @@ function productCard({ product }) {
 
     if (outOfStock) return;
 
-    // 🔔 Already in cart alert
     if (alreadyInCart) {
       Swal.fire({
         icon: "info",
@@ -44,8 +43,6 @@ function productCard({ product }) {
     }
 
     setIsAdding(true);
-
-    // animation delay
     await new Promise((r) => setTimeout(r, 700));
 
     addToCart({
@@ -58,7 +55,6 @@ function productCard({ product }) {
 
     setIsAdding(false);
 
-    // ✅ Added success alert
     Swal.fire({
       icon: "success",
       title: "Added to Cart",
@@ -70,6 +66,13 @@ function productCard({ product }) {
 
   return (
     <div className="relative bg-white rounded-xl shadow-md hover:shadow-lg transition duration-300 p-3">
+
+      {/* ✅ NEW BADGE (ONLY WHEN PASSED FROM PAGE) */}
+      {showNewBadge && (
+        <span className="absolute top-3 left-3 z-10 new-badge">
+          NEW
+        </span>
+      )}
 
       {/* OUT OF STOCK BADGE */}
       {outOfStock && (
@@ -137,4 +140,4 @@ function productCard({ product }) {
   );
 }
 
-export default productCard;
+export default ProductCard;

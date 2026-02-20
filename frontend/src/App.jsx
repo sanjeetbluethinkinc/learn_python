@@ -2,6 +2,7 @@ import { Routes, Route } from "react-router-dom";
 import NavBar from "./components/NavBar";
 import Footer from "./components/Footer";
 import BannerSlider from "./components/BannerSlider";
+import ScrollToTop from "./components/ScrollToTop";
 // Pages
 import BestSellerPage from "./components/pages/BestSellerPage";
 import NewArrivalSection from "./components/sections/NewArrivalSection";
@@ -17,7 +18,9 @@ import ContactUs from "./pages/ContactUs";
 import AllProducts from "./components/pages/AllProducts";
 import CategoriesPage from "./components/pages/CategoriesPage";
 import NewArrivalPage from "./components/pages/NewArrivalPage";
+import ManageAddress from "./components/pages/ManageAddress";
 
+import NotFound from "./components/pages/NotFound";
 // Category
 import CategoryProducts from "./components/CategoryProducts";
 import MyOrders from "./components/pages/MyOrders";
@@ -29,11 +32,12 @@ import ProtectedRoute from "./components/ProtectedRoute";
 function App() {
   return (
     <>
+    <ScrollToTop />
       <NavBar />
 
       <Routes>
         {/* ================= HOME ================= */}
-
+        
         <Route
           path="/"
           element={
@@ -43,13 +47,14 @@ function App() {
               <HomeSection />
               <NewArrivalSection />
               <ReviewsLayout />
-               <BestSellerSection />
+              <BestSellerSection />
             </>
           }
         />
+
+        {/* ================= SPECIAL PAGES ================= */}
         <Route path="/best-sellers" element={<BestSellerPage />} />
         <Route path="/new-arrivals" element={<NewArrivalPage />} />
-
 
         {/* ================= PUBLIC ROUTES ================= */}
         <Route path="/login" element={<Login />} />
@@ -57,15 +62,16 @@ function App() {
         <Route path="/about" element={<AboutPage />} />
         <Route path="/contact" element={<ContactUs />} />
 
-        {/* ✅ CATEGORY ROUTE (IMPORTANT) */}
+        {/* ================= CATEGORY ROUTES ================= */}
         <Route
           path="/products/category/:slug"
           element={<CategoryProducts />}
         />
         <Route path="/all-products" element={<AllProducts />} />
         <Route path="/categories" element={<CategoriesPage />} />
+        
 
-        {/* PRODUCT DETAILS */}
+        {/* ================= PRODUCT DETAILS ================= */}
         <Route path="/products/:id" element={<ProductDetails />} />
 
         {/* ================= PROTECTED ROUTES ================= */}
@@ -77,7 +83,9 @@ function App() {
             </ProtectedRoute>
           }
         />
+
         <Route path="/my-orders" element={<MyOrders />} />
+        <Route path="/manage-address" element={<ManageAddress />} />
 
         <Route
           path="/checkout"
@@ -87,7 +95,11 @@ function App() {
             </ProtectedRoute>
           }
         />
+
+        {/* ================= 404 PAGE (ALWAYS LAST) ================= */}
+        <Route path="*" element={<NotFound />} />
       </Routes>
+
       <Footer />
     </>
   );

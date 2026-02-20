@@ -35,7 +35,25 @@ function MyOrders() {
           throw new Error(data.error || "Failed to fetch orders");
         }
 
-        setOrders(data);
+        // ✅ FIX: normalize backend fields WITHOUT removing anything
+        const normalizedOrders = data.map((order) => ({
+          ...order,
+
+          // payment
+          payment_status: order.payment_status || order.payment?.status || "PENDING",
+          is_paid:
+            typeof order.is_paid === "boolean"
+              ? order.is_paid
+              : order.payment?.status === "SUCCESS",
+
+          // items
+          items: order.items || order.order_items || [],
+
+          // address
+          address: order.address || order.order_address || null,
+        }));
+
+        setOrders(normalizedOrders);
       } catch (err) {
         setError(err.message);
       } finally {
@@ -180,14 +198,16 @@ function MyOrders() {
                     >
                       <div className="flex justify-between">
                         <span className="font-medium">
-                          {item.product_name} × {item.quantity}
+                          {(item.product_name ||
+                            item.product?.name)} ×{" "}
+                          {(item.quantity ?? item.qty)}
                         </span>
                         <span className="font-semibold">
                           ₹{item.price}
                         </span>
                       </div>
 
-                      {/* ✅ SKU FROM PRODUCT MODEL */}
+                      {/* SKU */}
                       {item.product?.sku && (
                         <p className="mt-1 text-xs text-gray-600">
                           <strong>SKU:</strong> {item.product.sku}

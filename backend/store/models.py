@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 import uuid
 
+
 # ==========================
 # ORDER ADDRESS (CHECKOUT)
 # ==========================
@@ -334,15 +335,17 @@ class AboutSection(models.Model):
     point_4 = models.CharField(max_length=200)
 
     story_label = models.CharField(
-        max_length=100,
+        max_length=1000,
         default="OUR STORY"
     )
-    story_title = models.CharField(max_length=200)
+    story_title = models.TextField(max_length=2000)
 
     is_active = models.BooleanField(default=True)
 
     def __str__(self):
         return self.title
+    
+
 # ==========================
 # PRODUCT REVIEWS
 # ==========================
@@ -437,3 +440,19 @@ class Payment(models.Model):
 
     def __str__(self):
         return f"Order {self.order_id} | {self.payment_method} | {self.status}"
+
+
+
+        # user address
+class UserAddress(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="addresses")
+    full_name = models.CharField(max_length=100)
+    phone = models.CharField(max_length=20)
+    street = models.TextField()
+    city = models.CharField(max_length=100)
+    state = models.CharField(max_length=100)
+    zip_code = models.CharField(max_length=20)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.full_name} - {self.city}"

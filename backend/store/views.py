@@ -24,6 +24,7 @@ from .models import (
     OrderItem,
     OrderAddress,
     Payment,
+    UserAddress,
 )
 
 from .serializers import (
@@ -57,7 +58,7 @@ def approved_product_reviews(request, product_id):
 
 
 @api_view(["POST"])
-def submit_product_review(request):
+def submit_product_review_1(request):
     serializer = ProductReviewSerializer(data=request.data)
     if serializer.is_valid():
         serializer.save()
@@ -148,9 +149,6 @@ def verify_payment(request):
             {"error": str(e)},
             status=400
         )
-# ======================================================
-# CREATE ORDER (COD or ONLINE)
-# ======================================================
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def create_order(request):
@@ -159,18 +157,10 @@ def create_order(request):
 
     try:
         with transaction.atomic():
-            # 1️⃣ VALIDATE DATA
             items = data.get("items", [])
-            address = data.get("address")
+            address = data.get("address", {})
             payment_method = data.get("payment_method", "COD")
 
-            if not items:
-                return Response({"error": "No order items found"}, status=400)
-
-            if not address:
-                return Response({"error": "Address is required"}, status=400)
-
-            # 2️⃣ CREATE ORDER (always PENDING initially)
             order = Order.objects.create(
                 user=user,
                 subtotal=data.get("subtotal", 0),
@@ -181,36 +171,47 @@ def create_order(request):
                 is_paid=False,
             )
 
-            # 3️⃣ SAVE ADDRESS
             OrderAddress.objects.create(
                 order=order,
-                full_name=address.get("full_name"),
-                phone=address.get("phone"),
-                street=address.get("street"),
-                city=address.get("city"),
-                state=address.get("state"),
-                zip_code=address.get("zip_code"),
+                full_name=address.get("full_name", ""),
+                phone=address.get("phone", ""),
+                street=address.get("street", ""),
+                city=address.get("city", ""),
+                state=address.get("state", ""),
+                zip_code=address.get("zip_code", ""),
             )
 
-            # 4️⃣ CREATE ORDER ITEMS + REDUCE STOCK
             for item in items:
-                product_obj = product   .objects.select_for_update().get(id=item["product"])
+                product_id = item.get("product")
+                quantity = int(item.get("quantity", 1))
+                price = item.get("price", 0)
 
-                if product_obj.quantity < item["quantity"]:
+                if not product_id:
+                    continue
+
+                # ✅ CORRECT MODEL NAME
+                product_obj = product.objects.select_for_update().filter(
+                    id=product_id
+                ).first()
+
+                if not product_obj:
+                    continue
+
+                if product_obj.quantity < quantity:
                     raise Exception(f"{product_obj.name} is out of stock")
 
-                product_obj.quantity -= item["quantity"]
+                product_obj.quantity -= quantity
                 product_obj.save()
 
+                # ✅ THIS FIXES ADMIN DISPLAY
                 OrderItem.objects.create(
                     order=order,
                     product=product_obj,
-                    quantity=item["quantity"],
-                    price=item["price"],
+                    quantity=quantity,
+                    price=price,
                 )
 
-            # 5️⃣ CREATE PAYMENT RECORD
-            payment = Payment.objects.create(
+            Payment.objects.create(
                 user=user,
                 order=order,
                 payment_method=payment_method,
@@ -218,18 +219,14 @@ def create_order(request):
                 status="PENDING",
             )
 
-            # 6️⃣ COD FLOW
             if payment_method == "COD":
                 order.status = "CONFIRMED"
-                order.payment_status = "PENDING"
-                order.is_paid = False
                 order.save()
 
             return Response(
                 {
                     "message": "Order created successfully",
                     "order_id": order.id,
-                    "payment_method": payment_method,
                 },
                 status=201,
             )
@@ -290,14 +287,8 @@ def create_order(request):
     try:
         with transaction.atomic():
             items = data.get("items", [])
-            address = data.get("address")
+            address = data.get("address", {})
             payment_method = data.get("payment_method", "COD")
-
-            if not items:
-                return Response({"error": "No order items found"}, status=400)
-
-            if not address:
-                return Response({"error": "Address is required"}, status=400)
 
             order = Order.objects.create(
                 user=user,
@@ -311,33 +302,31 @@ def create_order(request):
 
             OrderAddress.objects.create(
                 order=order,
-                full_name=address.get("full_name"),
-                phone=address.get("phone"),
-                street=address.get("street"),
-                city=address.get("city"),
-                state=address.get("state"),
-                zip_code=address.get("zip_code"),
+                full_name=address.get("full_name", ""),
+                phone=address.get("phone", ""),
+                street=address.get("street", ""),
+                city=address.get("city", ""),
+                state=address.get("state", ""),
+                zip_code=address.get("zip_code", ""),
             )
 
             for item in items:
                 product_id = item.get("product")
-                quantity = item.get("quantity")
+                quantity = int(item.get("quantity", 1))
+                price = item.get("price", 0)
 
-                if not product_id or not quantity:
-                    return Response(
-                        {"error": "Invalid order item"},
-                        status=400
-                    )
+                if not product_id:
+                    continue
 
-                product_obj = product.objects.select_for_update().get(
+                product_obj = product.objects.select_for_update().filter(
                     id=product_id
-                )
+                ).first()
+
+                if not product_obj:
+                    continue
 
                 if product_obj.quantity < quantity:
-                    return Response(
-                        {"error": f"{product_obj.name} is out of stock"},
-                        status=400
-                    )
+                    raise Exception(f"{product_obj.name} is out of stock")
 
                 product_obj.quantity -= quantity
                 product_obj.save()
@@ -346,7 +335,7 @@ def create_order(request):
                     order=order,
                     product=product_obj,
                     quantity=quantity,
-                    price=item.get("price"),
+                    price=price,
                 )
 
             Payment.objects.create(
@@ -361,16 +350,17 @@ def create_order(request):
                 order.status = "CONFIRMED"
                 order.save()
 
-            return Response(
-                {
-                    "message": "Order created successfully",
-                    "order_id": order.id,
-                },
-                status=201,
-            )
+        return Response(
+            {
+                "message": "Order created successfully",
+                "order_id": order.id,
+            },
+            status=201,
+        )
 
     except Exception as e:
         return Response({"error": str(e)}, status=400)
+
 
 # =========================
 # AUTH
@@ -697,3 +687,74 @@ def remove_from_Cart(request):
         )
 
     return Response({"message": "product removed from cart"})
+
+# manage address
+@api_view(["GET", "POST"])
+@permission_classes([IsAuthenticated])
+def manage_address(request):
+    user = request.user
+
+    # =========================
+    # GET: LIST ADDRESSES
+    # =========================
+    if request.method == "GET":
+        addresses = UserAddress.objects.filter(user=user)
+        data = [
+            {
+                "id": a.id,
+                "full_name": a.full_name,
+                "phone": a.phone,
+                "street": a.street,
+                "city": a.city,
+                "state": a.state,
+                "zip_code": a.zip_code,
+            }
+            for a in addresses
+        ]
+        return Response(data)
+
+    # =========================
+    # POST: SAVE ADDRESS (NO DUPLICATES)
+    # =========================
+    if request.method == "POST":
+        data = request.data
+
+        full_name = data.get("full_name", "").strip()
+        phone = data.get("phone", "").strip()
+        street = data.get("street", "").strip()
+        city = data.get("city", "").strip()
+        state = data.get("state", "").strip()
+        zip_code = data.get("zip_code", "").strip()
+
+        # 🔍 CHECK FOR DUPLICATE ADDRESS
+        existing_address = UserAddress.objects.filter(
+            user=user,
+            full_name=full_name,
+            phone=phone,
+            street=street,
+            city=city,
+            state=state,
+            zip_code=zip_code,
+        ).first()
+
+        if existing_address:
+            return Response(
+                {"message": "Address already exists"},
+                status=200
+            )
+
+        # ✅ SAVE NEW ADDRESS
+        UserAddress.objects.create(
+            user=user,
+            full_name=full_name,
+            phone=phone,
+            street=street,
+            city=city,
+            state=state,
+            zip_code=zip_code,
+        )
+
+        return Response(
+            {"message": "New address saved successfully"},
+            status=201
+        )

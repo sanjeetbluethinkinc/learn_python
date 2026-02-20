@@ -9,19 +9,20 @@ from .views import (
     get_contact_info,
     get_company_policies,
     submit_contact_form,
-    submit_product_review,
+    submit_product_review_1,
     approved_product_reviews,
     product_questions,
-    submit_product_question,     
+    submit_product_question,  
+    manage_address,
 )
 
 
 urlpatterns = [
-     path("products/", views.get_products),
+    path("products/", views.get_products),
     path("products/<int:pk>/", views.get_product),
     path("products/category/<slug:slug>/", views.get_products_by_category),
+    path("products/reviews/submit/", submit_product_review_1),
     path("products/<int:product_id>/reviews/", approved_product_reviews),
-    path("reviews/submit/", submit_product_review),
     path("products/<int:product_id>/questions/", product_questions),
     path("questions/submit/", submit_product_question),
     path("categories/", views.get_Categories),
@@ -44,6 +45,7 @@ urlpatterns = [
     path("contact/submit/", views.submit_contact_form),
     path("reviews/submit/", views.submit_review),
     path("reviews/approved/", views.approved_reviews),
-     path("products/new-arrival/", views.new_arrival_products),
+    path("products/new-arrival/", views.new_arrival_products),
     path("products/best-seller/", views.best_seller_products),
+    path("address/", views.manage_address),
 ]

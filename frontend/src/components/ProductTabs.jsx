@@ -17,7 +17,8 @@ export default function ProductTabs({ product }) {
   });
 
   const [hoverRating, setHoverRating] = useState(0);
-
+  const [showAllReviews, setShowAllReviews] = useState(false);
+  const [showAllQuestions, setShowAllQuestions] = useState(false);
   const [questionForm, setQuestionForm] = useState({
     name: "",
     question: "",
@@ -28,12 +29,12 @@ export default function ProductTabs({ product }) {
     fetch(`${BASEURL}/api/products/${product.id}/reviews/`)
       .then(res => res.json())
       .then(setReviews)
-      .catch(() => {});
+      .catch(() => { });
 
     fetch(`${BASEURL}/api/products/${product.id}/questions/`)
       .then(res => res.json())
       .then(setQuestions)
-      .catch(() => {});
+      .catch(() => { });
   }, [product.id, BASEURL]);
 
   /* ================= TAB SWITCH WITH LOADER ================= */
@@ -45,7 +46,7 @@ export default function ProductTabs({ product }) {
   };
 
   /* ================= SUBMIT REVIEW ================= */
-  const submitReview = async (e) => {
+   const submitReview = async (e) => {
     e.preventDefault();
 
     if (!reviewForm.name || !reviewForm.review || reviewForm.rating === 0) {
@@ -58,11 +59,24 @@ export default function ProductTabs({ product }) {
     }
 
     try {
-      await fetch(`${BASEURL}/api/reviews/submit/`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...reviewForm, product: product.id }),
-      });
+      const res = await fetch(
+        `${BASEURL}/api/products/reviews/submit/`, // ✅ FIXED URL
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            product: product.id,              // 🔥 REQUIRED
+            name: reviewForm.name,
+            rating: Number(reviewForm.rating),
+            review: reviewForm.review,
+          }),
+        }
+      );
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw err;
+      }
 
       Swal.fire({
         icon: "success",
@@ -72,11 +86,13 @@ export default function ProductTabs({ product }) {
       });
 
       setReviewForm({ name: "", rating: 0, review: "" });
-    } catch {
+
+    } catch (err) {
+      console.error(err);
       Swal.fire({
         icon: "error",
         title: "Failed",
-        text: "Unable to submit review. Try again later.",
+        text: JSON.stringify(err) || "Unable to submit review.",
       });
     }
   };
@@ -140,10 +156,9 @@ export default function ProductTabs({ product }) {
                after:h-[2px] after:w-0 after:bg-orange-400
                after:transition-all after:duration-300
                hover:after:w-full
-                ${
-                  tab === t
-                    ? "text-orange-600 "
-                    : "text-gray-500 hover:text-orange-400 cursor-pointer"
+                ${tab === t
+                  ? "text-orange-600 "
+                  : "text-gray-500 hover:text-orange-400 cursor-pointer"
                 }
               `}
             >
@@ -165,24 +180,24 @@ export default function ProductTabs({ product }) {
       ) : (
         <>
           {/* ================= DETAILS ================= */}
-         {tab === "details" && (
-  <div className="bg-gray-50 p-6">
+          {tab === "details" && (
+            <div className="bg-gray-50 p-6">
 
-    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-      <span className="w-2 h-2 bg-orange-500 rounded-full" />
-      Product Description
-    </h3>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <span className="w-2 h-2 bg-orange-500 rounded-full" />
+                Product Description
+              </h3>
 
-    <div className="text-gray-700 leading-7 text-sm whitespace-pre-line">
-      {product.description || (
-        <span className="italic text-gray-400">
-          No description available for this product.
-        </span>
-      )}
-    </div>
+              <div className="text-gray-700 leading-7 text-sm whitespace-pre-line">
+                {product.description || (
+                  <span className="italic text-gray-400">
+                    No description available for this product.
+                  </span>
+                )}
+              </div>
 
-  </div>
-)}
+            </div>
+          )}
 
           {/* ================= REVIEWS ================= */}
           {tab === "reviews" && (
@@ -198,17 +213,23 @@ export default function ProductTabs({ product }) {
                   </p>
                 )}
 
-                {reviews.map(r => (
+                {reviews.slice(0, 3).map(r => (
                   <div key={r.id} className="border rounded-lg p-4 mb-4">
                     <div className="flex justify-between mb-2">
                       <span className="font-medium">{r.name}</span>
-                      <span className="text-yellow-400">
-                        {"★".repeat(r.rating)}
-                      </span>
+                      <span className="text-yellow-400">{"★".repeat(r.rating)}</span>
                     </div>
                     <p className="text-sm text-gray-600">{r.review}</p>
                   </div>
                 ))}
+                {reviews.length > 3 && (
+                  <button
+                    onClick={() => setShowAllReviews(true)}
+                    className="text-orange-500 font-medium hover:underline"
+                  >
+                    See All Reviews
+                  </button>
+                )}
               </div>
 
               {/* REVIEW FORM */}
@@ -226,11 +247,10 @@ export default function ProductTabs({ product }) {
                       onClick={() =>
                         setReviewForm({ ...reviewForm, rating: star })
                       }
-                      className={`text-3xl ${
-                        (hoverRating || reviewForm.rating) >= star
+                      className={`text-3xl ${(hoverRating || reviewForm.rating) >= star
                           ? "text-yellow-400"
                           : "text-gray-300"
-                      }`}
+                        }`}
                     >
                       ★
                     </button>
@@ -276,14 +296,22 @@ export default function ProductTabs({ product }) {
                   Questions & Answers
                 </h3>
 
-                {questions.map(q => (
+                {questions.slice(0, 3).map(q => (
                   <div key={q.id} className="border rounded-lg p-4 mb-4">
                     <p className="font-medium">Q: {q.question}</p>
                     <p className="text-sm text-gray-600 mt-2">
-                      <strong>A:</strong> {q.answer}
+                      <strong>A:</strong> {q.answer || "Not answered yet"}
                     </p>
                   </div>
                 ))}
+                {questions.length > 3 && (
+                  <button
+                    onClick={() => setShowAllQuestions(true)}
+                    className="text-orange-500 font-medium hover:underline"
+                  >
+                    See All Questions
+                  </button>
+                )}
               </div>
 
               <form onSubmit={submitQuestion} className="bg-gray-50 rounded-lg p-5">
@@ -320,6 +348,40 @@ export default function ProductTabs({ product }) {
             </div>
           )}
         </>
+      )}
+       {showAllReviews && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+          <div className="bg-white max-w-2xl w-full p-6 rounded-lg">
+            <button onClick={() => setShowAllReviews(false)} className="float-right">✕</button>
+            <h3 className="text-lg font-semibold mb-4">All Reviews</h3>
+            <div className="max-h-[400px] overflow-y-auto">
+              {reviews.map(r => (
+                <div key={r.id} className="border p-4 mb-3 rounded">
+                  <strong>{r.name}</strong>
+                  <p className="text-sm">{r.review}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ================= QUESTIONS POPUP ================= */}
+      {showAllQuestions && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+          <div className="bg-white max-w-2xl w-full p-6 rounded-lg">
+            <button onClick={() => setShowAllQuestions(false)} className="float-right">✕</button>
+            <h3 className="text-lg font-semibold mb-4">All Questions</h3>
+            <div className="max-h-[400px] overflow-y-auto">
+              {questions.map(q => (
+                <div key={q.id} className="border p-4 mb-3 rounded">
+                  <p><strong>Q:</strong> {q.question}</p>
+                  <p className="text-sm"><strong>A:</strong> {q.answer || "Not answered yet"}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

@@ -74,12 +74,12 @@ function AboutPage() {
       {/* STORY SECTION */}
       <section className="bg-gray-100 py-16">
         <div className="max-w-7xl mx-auto px-6">
-          <p className="text-sm uppercase font-semibold text-gray-500 mb-2">
+          <h2 className="text-4xl uppercase font-bold text-gray-500 mb-2">
             {data.story_label}
-          </p>
-          <h2 className="text-3xl font-bold text-gray-900">
-            {data.story_title}
           </h2>
+          <p className="text-lg text-gray-900">
+            {data.story_title}
+          </p>
         </div>
       </section>
     </div>

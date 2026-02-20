@@ -204,21 +204,25 @@ class CartSerializer(serializers.ModelSerializer):
         ]
 
 
-# ---------------- ORDER ITEM (READ) ----------------
 class OrderItemSerializer(serializers.ModelSerializer):
-    product_name = serializers.CharField(source="product.name", read_only=True)
-    product_sku = serializers.CharField(source="product.sku", read_only=True)
+    product_name = serializers.CharField(
+        source="product.name",
+        read_only=True
+    )
+    product_sku = serializers.CharField(
+        source="product.sku",
+        read_only=True
+    )
 
     class Meta:
         model = OrderItem
-        fields = [
+        fields = (
             "id",
-            "product",
             "product_name",
             "product_sku",
             "quantity",
             "price",
-        ]
+        )
 
 
 # ---------------- ORDER ITEM (WRITE) ----------------

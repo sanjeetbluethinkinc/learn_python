@@ -1,14 +1,15 @@
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import Slider from "react-slick";
 import { useCart } from "../../context/CartContext";
 import ProductCard from "../ProductCard";
-import ProductTabs from "../../components/ProductTabs"; // ✅ FIXED PATH
+import ProductTabs from "../../components/ProductTabs";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 
 function ProductDetails() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const BASEURL = import.meta.env.VITE_DJANGO_BASE_URL.replace(/\/$/, "");
 
   const [product, setProduct] = useState(null);
@@ -34,7 +35,6 @@ function ProductDetails() {
         const data = await response.json();
         setProduct(data);
 
-        // Build image array
         const imgs = [];
         if (data.image) imgs.push(`${BASEURL}${data.image}`);
         if (data.images?.length) {
@@ -46,7 +46,6 @@ function ProductDetails() {
         setImages(imgs.length ? imgs : ["https://via.placeholder.com/800x600"]);
         setCurrentIndex(0);
 
-        // Fetch related products
         if (data.category?.slug) {
           fetchRelatedProducts(data.category.slug, data.id);
         }
@@ -89,9 +88,18 @@ function ProductDetails() {
   /* ================= ADD TO CART ================= */
   const handleAddToCart = async () => {
     setAdding(true);
-    await new Promise(r => setTimeout(r, 600));
+    await new Promise(r => setTimeout(r, 400));
     addToCart(product, quantity);
     setAdding(false);
+  };
+
+  /* ================= BUY NOW ================= */
+  const handleBuyNow = async () => {
+    setAdding(true);
+    await new Promise(r => setTimeout(r, 400));
+    addToCart(product, quantity);
+    setAdding(false);
+    navigate("/checkout");
   };
 
   /* ================= RELATED SLIDER ================= */
@@ -169,11 +177,7 @@ function ProductDetails() {
                 src={img}
                 onClick={() => setCurrentIndex(index)}
                 className={`w-20 h-16 object-cover rounded-md cursor-pointer border
-                  ${
-                    currentIndex === index
-                      ? "border-orange-500"
-                      : "border-gray-300"
-                  }`}
+                  ${currentIndex === index ? "border-orange-500" : "border-gray-300"}`}
               />
             ))}
           </div>
@@ -207,13 +211,24 @@ function ProductDetails() {
             </div>
           </div>
 
-          <button
-            onClick={handleAddToCart}
-            disabled={adding}
-            className="px-10 py-3 rounded-full bg-orange-500 text-white hover:bg-orange-600"
-          >
-            {adding ? "Adding..." : "Add to Bag"}
-          </button>
+          {/* ACTION BUTTONS */}
+          <div className="flex gap-4 flex-wrap">
+            <button
+              onClick={handleAddToCart}
+              disabled={adding}
+              className="px-10 py-3 rounded-full bg-orange-500 text-white hover:bg-orange-600"
+            >
+              {adding ? "Adding..." : "Add to Bag"}
+            </button>
+
+            <button
+              onClick={handleBuyNow}
+              disabled={adding}
+              className="px-10 py-3 rounded-full bg-black text-white hover:bg-gray-800"
+            >
+              Buy Now
+            </button>
+          </div>
 
           <Link to="/" className="block mt-6 text-orange-500 hover:underline">
             ← Back to Home

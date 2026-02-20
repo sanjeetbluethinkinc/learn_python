@@ -197,8 +197,31 @@ class CartAdmin(admin.ModelAdmin):
 class OrderItemInline(admin.TabularInline):
     model = OrderItem
     extra = 0
-    readonly_fields = ("product", "quantity", "price")
     can_delete = False
+
+    readonly_fields = (
+        "product_name",
+        "product_sku",
+        "quantity",
+        "price",
+    )
+
+    fields = (
+        "product_name",
+        "product_sku",
+        "quantity",
+        "price",
+    )
+
+    def product_name(self, obj):
+        return obj.product.name if obj.product else "-"
+
+    def product_sku(self, obj):
+        return obj.product.sku if obj.product else "-"
+
+    product_name.short_description = "Product"
+    product_sku.short_description = "SKU"
+
 
 
 class OrderAddressInline(admin.StackedInline):
